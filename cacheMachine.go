@@ -3,24 +3,23 @@ package main
 import (
 	"fmt"
 	"sync"
+	"time"
 )
 
-//===========[CACHE/STATIC]====================================================================================================
+//===========[CACHE/STATIC]=============================================================================================
 
-var caches map[string]Cacher
-
-//===========[INTERFACES]====================================================================================================
+//===========[INTERFACES]===============================================================================================
 
 //Key defines types that can be used as keys in the cache
 type Key interface {
 	string | int | int64 | int32 | int16 | int8 | float32 | float64
 }
 
-type Cacher interface {
-	Cache() *Cache[TKey, TValue]
+type SaveHandler[TKey Key, TValue any] interface {
+	Save(map[TKey]TValue)
 }
 
-//===========[STRUCTS]====================================================================================================
+//===========[STRUCTS]==================================================================================================
 
 //Cache is the main definition of the cache
 type Cache[TKey Key, TValue any] struct {
@@ -76,6 +75,30 @@ func (c *Cache[TKey, TValue]) Reset() {
 	c.counter = 0
 }
 
+//Creates a copy of the data
+func (c *Cache[TKey, TValue]) copyData() map[TKey]TValue {
+	cpy := make(map[TKey]TValue)
+	c.mx.Lock()
+	for key, val := range c.data {
+		cpy[key] = val
+	}
+	c.mx.Unlock()
+	return cpy
+}
+
+//Save saves the entire cache
+func (c *Cache[TKey, TValue]) Save(saveHandler SaveHandler[TKey, TValue]) {
+	saveHandler.Save(c.copyData())
+}
+
+func (c *Cache[TKey, TValue]) SetSaveInterval(saveHandler SaveHandler[TKey, TValue], ticker *time.Ticker) {
+	go func() {
+		for {
+			<-ticker.C
+		}
+	}()
+}
+
 //===========[FUNCTIONALITY]====================================================================================================
 
 //New initiates new cache. The two arguments define what type key and value the cache is going to hold
@@ -85,11 +108,17 @@ func New[TKey Key, TValue any](name string, k TKey, v TValue) Cache[TKey, TValue
 		mx:   sync.RWMutex{},
 	}
 
-	caches[name] = &c
-
 	return c
 }
 
 func main() {
-	fmt.Println("asdad")
+	cache := New("test_cache", "", 1)
+
+	cache.Add("one", 77)
+	cache.Add("two", 5)
+
+	fmt.Println(cache.Count())
+	fmt.Println(cache.Get("two"))
+
+	cache.SetSaveInterval(nil, time.NewTicker(time.Second * 2))
 }

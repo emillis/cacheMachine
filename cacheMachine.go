@@ -1,9 +1,7 @@
-package main
+package cacheMachine
 
 import (
-	"fmt"
 	"sync"
-	"time"
 )
 
 //===========[CACHE/STATIC]=============================================================================================
@@ -36,6 +34,19 @@ func (c *Cache[TKey, TValue]) Add(key TKey, val TValue) {
 	c.counter++
 }
 
+//AddBulk adds items to cache in bulk
+func (c *Cache[TKey, TValue]) AddBulk(d map[TKey]TValue) {
+	if d == nil {
+		return
+	}
+
+	c.mx.Lock()
+	defer c.mx.Unlock()
+	for k, v := range d {
+		c.data[k] = v
+	}
+}
+
 //Remove removes value from the cache based on the key provided
 func (c *Cache[TKey, TValue]) Remove(key TKey) {
 	c.mx.Lock()
@@ -50,6 +61,36 @@ func (c *Cache[TKey, TValue]) Get(key TKey) (TValue, bool) {
 	defer c.mx.RUnlock()
 	v, exist := c.data[key]
 	return v, exist
+}
+
+//GetBulk returns a map of key -> value pairs where key is one provided in the slice
+func (c *Cache[TKey, TValue]) GetBulk(d []TKey) map[TKey]TValue {
+	results := make(map[TKey]TValue)
+
+	if d == nil || len(d) < 1 {
+		return results
+	}
+
+	c.mx.RLock()
+	for _, k := range d {
+		results[k] = c.data[k]
+	}
+	c.mx.RUnlock()
+
+	return results
+}
+
+//GetAll returns all the values stored in the cache
+func (c *Cache[TKey, TValue]) GetAll() map[TKey]TValue {
+	results := make(map[TKey]TValue)
+
+	c.mx.RLock()
+	for k, v := range c.data {
+		results[k] = v
+	}
+	c.mx.RUnlock()
+
+	return results
 }
 
 //Exist checks whether there the key exists in the cache
@@ -86,39 +127,14 @@ func (c *Cache[TKey, TValue]) copyData() map[TKey]TValue {
 	return cpy
 }
 
-//Save saves the entire cache
-func (c *Cache[TKey, TValue]) Save(saveHandler SaveHandler[TKey, TValue]) {
-	saveHandler.Save(c.copyData())
-}
-
-func (c *Cache[TKey, TValue]) SetSaveInterval(saveHandler SaveHandler[TKey, TValue], ticker *time.Ticker) {
-	go func() {
-		for {
-			<-ticker.C
-		}
-	}()
-}
-
 //===========[FUNCTIONALITY]====================================================================================================
 
 //New initiates new cache. The two arguments define what type key and value the cache is going to hold
-func New[TKey Key, TValue any](name string, k TKey, v TValue) Cache[TKey, TValue] {
+func New[TKey Key, TValue any](k TKey, v TValue) Cache[TKey, TValue] {
 	c := Cache[TKey, TValue]{
 		data: make(map[TKey]TValue),
 		mx:   sync.RWMutex{},
 	}
 
 	return c
-}
-
-func main() {
-	cache := New("test_cache", "", 1)
-
-	cache.Add("one", 77)
-	cache.Add("two", 5)
-
-	fmt.Println(cache.Count())
-	fmt.Println(cache.Get("two"))
-
-	cache.SetSaveInterval(nil, time.NewTicker(time.Second * 2))
 }

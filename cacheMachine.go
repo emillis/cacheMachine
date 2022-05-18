@@ -30,7 +30,17 @@ type Cache[TKey Key, TValue any] struct {
 func (c *Cache[TKey, TValue]) Add(key TKey, val TValue) {
 	c.mx.Lock()
 	defer c.mx.Unlock()
+
+	_, exist := c.data[key]
+
 	c.data[key] = val
+
+	//If key -> value pair being added already exist, it will be overwritten and therefore
+	//counter doesn't need to be incremented
+	if exist {
+		return
+	}
+
 	c.counter++
 }
 
@@ -43,8 +53,17 @@ func (c *Cache[TKey, TValue]) AddBulk(d map[TKey]TValue) {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	for k, v := range d {
+		_, exist := c.data[k]
+
+		//Overwriting data if it's already present
 		c.data[k] = v
 
+		//If data been overwritten, there's no need to increment the counter
+		if exist {
+			continue
+		}
+
+		c.counter++
 	}
 }
 
@@ -52,24 +71,34 @@ func (c *Cache[TKey, TValue]) AddBulk(d map[TKey]TValue) {
 func (c *Cache[TKey, TValue]) Remove(key TKey) {
 	c.mx.Lock()
 	defer c.mx.Unlock()
+
+	//If data doesn't exist, there's no need to perform further operations
+	if _, exist := c.data[key]; !exist {
+		return
+	}
+
 	delete(c.data, key)
+
 	c.counter--
 }
 
 //RemoveBulk removes cached data based on keys provided
 func (c *Cache[TKey, TValue]) RemoveBulk(keys []TKey) {
-	if keys == nil || len(keys) < 1 {return}
+	if keys == nil || len(keys) < 1 {
+		return
+	}
 
 	c.mx.Lock()
 	defer c.mx.Unlock()
 
 	for _, key := range keys {
-		_, exist := c.data[key]
-
-		if !exist {continue}
+		//If data doesn't exist, there's no need to perform further commands
+		if _, exist := c.data[key]; !exist {
+			continue
+		}
 
 		delete(c.data, key)
-		c.counter++
+		c.counter--
 	}
 }
 

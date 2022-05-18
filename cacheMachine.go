@@ -44,6 +44,7 @@ func (c *Cache[TKey, TValue]) AddBulk(d map[TKey]TValue) {
 	defer c.mx.Unlock()
 	for k, v := range d {
 		c.data[k] = v
+
 	}
 }
 
@@ -53,6 +54,23 @@ func (c *Cache[TKey, TValue]) Remove(key TKey) {
 	defer c.mx.Unlock()
 	delete(c.data, key)
 	c.counter--
+}
+
+//RemoveBulk removes cached data based on keys provided
+func (c *Cache[TKey, TValue]) RemoveBulk(keys []TKey) {
+	if keys == nil || len(keys) < 1 {return}
+
+	c.mx.Lock()
+	defer c.mx.Unlock()
+
+	for _, key := range keys {
+		_, exist := c.data[key]
+
+		if !exist {continue}
+
+		delete(c.data, key)
+		c.counter++
+	}
 }
 
 //Get returns value based on the key provided

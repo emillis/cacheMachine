@@ -61,6 +61,14 @@ func BenchmarkGetBulk(b *testing.B) {
 	}
 }
 
+func BenchmarkGetAndRemove(b *testing.B) {
+	cache.Add(7, 8)
+
+	for n := 0; n < b.N; n++ {
+		cache.GetAndRemove(7)
+	}
+}
+
 func BenchmarkGetAll(b *testing.B) {
 	cache.Add(7, 8)
 

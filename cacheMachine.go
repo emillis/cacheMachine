@@ -13,10 +13,6 @@ type Key interface {
 	string | int | int64 | int32 | int16 | int8 | float32 | float64
 }
 
-type SaveHandler[TKey Key, TValue any] interface {
-	Save(map[TKey]TValue)
-}
-
 //===========[STRUCTS]==================================================================================================
 
 //Cache is the main definition of the cache
@@ -26,6 +22,9 @@ type Cache[TKey Key, TValue any] struct {
 	counter int
 }
 
+//------PRIVATE------
+
+//add method adds an item. This method has no mutex protection
 func (c *Cache[TKey, TValue]) add(key TKey, val TValue) {
 	if _, exist := c.data[key]; !exist {
 		c.counter++
@@ -33,6 +32,31 @@ func (c *Cache[TKey, TValue]) add(key TKey, val TValue) {
 
 	c.data[key] = val
 }
+
+//remove method removes an item, but is not protected by a mutex
+func (c *Cache[TKey, TValue]) remove(key TKey) {
+	//If data doesn't exist, there's no need to perform further operations
+	if _, exist := c.data[key]; !exist {
+		return
+	}
+
+	delete(c.data, key)
+
+	c.counter--
+}
+
+//Creates a copy of the data
+func (c *Cache[TKey, TValue]) copyData() map[TKey]TValue {
+	cpy := make(map[TKey]TValue)
+	c.mx.RLock()
+	for key, val := range c.data {
+		cpy[key] = val
+	}
+	c.mx.RUnlock()
+	return cpy
+}
+
+//------PUBLIC------
 
 //Add inserts new value into the cache
 func (c *Cache[TKey, TValue]) Add(key TKey, val TValue) {
@@ -52,18 +76,6 @@ func (c *Cache[TKey, TValue]) AddBulk(d map[TKey]TValue) {
 	for k, v := range d {
 		c.add(k, v)
 	}
-}
-
-//remove method removes an item, but is not protected by a mutex
-func (c *Cache[TKey, TValue]) remove(key TKey) {
-	//If data doesn't exist, there's no need to perform further operations
-	if _, exist := c.data[key]; !exist {
-		return
-	}
-
-	delete(c.data, key)
-
-	c.counter--
 }
 
 //Remove removes value from the cache based on the key provided
@@ -107,6 +119,15 @@ func (c *Cache[TKey, TValue]) GetBulk(d []TKey) map[TKey]TValue {
 	return results
 }
 
+//GetAndRemove returns requested value and removes it from the cache
+func (c *Cache[TKey, TValue]) GetAndRemove(key TKey) (TValue, bool) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
+	v, exist := c.data[key]
+	c.remove(key)
+	return v, exist
+}
+
 //GetAll returns all the values stored in the cache
 func (c *Cache[TKey, TValue]) GetAll() map[TKey]TValue {
 	return c.copyData()
@@ -133,17 +154,6 @@ func (c *Cache[TKey, TValue]) Reset() {
 	defer c.mx.Unlock()
 	c.data = make(map[TKey]TValue)
 	c.counter = 0
-}
-
-//Creates a copy of the data
-func (c *Cache[TKey, TValue]) copyData() map[TKey]TValue {
-	cpy := make(map[TKey]TValue)
-	c.mx.RLock()
-	for key, val := range c.data {
-		cpy[key] = val
-	}
-	c.mx.RUnlock()
-	return cpy
 }
 
 //===========[FUNCTIONALITY]====================================================================================================

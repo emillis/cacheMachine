@@ -10,7 +10,7 @@ import (
 
 //Key defines types that can be used as keys in the cache
 type Key interface {
-	string | int | int64 | int32 | int16 | int8 | float32 | float64
+	string | int | int64 | int32 | int16 | int8 | float32 | float64 | bool
 }
 
 //===========[STRUCTS]==================================================================================================

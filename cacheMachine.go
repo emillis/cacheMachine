@@ -158,12 +158,19 @@ func (c *Cache[TKey, TValue]) Reset() {
 
 //===========[FUNCTIONALITY]====================================================================================================
 
-//New initiates new cache. The two arguments define what type key and value the cache is going to hold
-func New[TKey Key, TValue any]() Cache[TKey, TValue] {
+//New initiates new cache. It can also take in values that will be added to the cache immediately after initiation
+func New[TKey Key, TValue any](initialValues map[TKey]TValue) Cache[TKey, TValue] {
 	c := Cache[TKey, TValue]{
 		data: make(map[TKey]TValue),
 		mx:   sync.RWMutex{},
 	}
 
+	c.AddBulk(initialValues)
+
 	return c
+}
+
+//Copy creates identical copy of the cache supplied as an argument
+func Copy[TKey Key, TValue any](c Cache[TKey, TValue]) Cache[TKey, TValue] {
+	return New[TKey, TValue](c.GetAll())
 }

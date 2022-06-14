@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-var cache = cacheMachine.New[int, int]()
+var cache = cacheMachine.New[int, int](nil)
 
 func BenchmarkAdd(b *testing.B) {
 	for n := 0; n < b.N; n++ {
@@ -86,7 +86,7 @@ func BenchmarkCount(b *testing.B) {
 }
 
 func BenchmarkReset(b *testing.B) {
-	var c = cacheMachine.New[int, int]()
+	var c = cacheMachine.New[int, int](nil)
 
 	for n := 0; n < b.N; n++ {
 		c.Reset()

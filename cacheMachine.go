@@ -13,6 +13,10 @@ type Key interface {
 	string | int | int64 | int32 | int16 | int8 | float32 | float64 | bool
 }
 
+type GetAll[TKey Key, TValue any] interface {
+	GetAll() map[TKey]TValue
+}
+
 //===========[STRUCTS]==================================================================================================
 
 //Cache is the main definition of the cache
@@ -171,6 +175,6 @@ func New[TKey Key, TValue any](initialValues map[TKey]TValue) Cache[TKey, TValue
 }
 
 //Copy creates identical copy of the cache supplied as an argument
-func Copy[TKey Key, TValue any](c Cache[TKey, TValue]) Cache[TKey, TValue] {
-	return New[TKey, TValue](c.GetAll())
+func Copy[TKey Key, TValue any](d GetAll[TKey, TValue]) Cache[TKey, TValue] {
+	return New[TKey, TValue](d.GetAll())
 }

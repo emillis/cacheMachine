@@ -21,19 +21,14 @@ type GetAll[TKey Key, TValue any] interface {
 
 //Cache is the main definition of the cache
 type Cache[TKey Key, TValue any] struct {
-	data    map[TKey]TValue
-	mx      sync.RWMutex
-	counter int
+	data map[TKey]TValue
+	mx   sync.RWMutex
 }
 
 //------PRIVATE------
 
 //add method adds an item. This method has no mutex protection
 func (c *Cache[TKey, TValue]) add(key TKey, val TValue) {
-	if _, exist := c.data[key]; !exist {
-		c.counter++
-	}
-
 	c.data[key] = val
 }
 
@@ -45,8 +40,6 @@ func (c *Cache[TKey, TValue]) remove(key TKey) {
 	}
 
 	delete(c.data, key)
-
-	c.counter--
 }
 
 //Creates a copy of the data
@@ -137,6 +130,24 @@ func (c *Cache[TKey, TValue]) GetAll() map[TKey]TValue {
 	return c.copyData()
 }
 
+//GetRandomSamples returns mixed set of items. Number of items is defined in the argument, if it exceeds the
+//number of items that are present in the cache, it will return all the cached items
+func (c *Cache[TKey, TValue]) GetRandomSamples(n int) map[TKey]TValue {
+	results := make(map[TKey]TValue)
+
+	for key, val := range c.data {
+		if n < 1 {
+			break
+		}
+
+		results[key] = val
+
+		n--
+	}
+
+	return results
+}
+
 //Exist checks whether there the key exists in the cache
 func (c *Cache[TKey, TValue]) Exist(key TKey) bool {
 	c.mx.RLock()
@@ -147,9 +158,9 @@ func (c *Cache[TKey, TValue]) Exist(key TKey) bool {
 
 //Count returns number of elements currently present in the cache
 func (c *Cache[TKey, TValue]) Count() int {
-	c.mx.RLock()
-	defer c.mx.RUnlock()
-	return c.counter
+	c.mx.Lock()
+	defer c.mx.Unlock()
+	return len(c.data)
 }
 
 //Reset empties the cache and resets all the counters
@@ -157,7 +168,6 @@ func (c *Cache[TKey, TValue]) Reset() {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	c.data = make(map[TKey]TValue)
-	c.counter = 0
 }
 
 //===========[FUNCTIONALITY]====================================================================================================

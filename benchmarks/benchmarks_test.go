@@ -92,3 +92,20 @@ func BenchmarkReset(b *testing.B) {
 		c.Reset()
 	}
 }
+
+func BenchmarkGetRandomSamples(b *testing.B) {
+	var c = cacheMachine.New[int, int](map[int]int{
+		1: 1,
+		2: 2,
+		3: 3,
+		4: 4,
+		5: 5,
+		6: 6,
+		7: 7,
+	})
+
+	for n := 0; n < b.N; n++ {
+		c.GetRandomSamples(1)
+	}
+
+}

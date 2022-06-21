@@ -7,6 +7,12 @@ import (
 
 var cache = cacheMachine.New[int, int](nil)
 
+func populateCache(n int, c cacheMachine.Cache[int, int]) {
+	for i := 0; i < n; i++ {
+		c.Add(i, i)
+	}
+}
+
 func BenchmarkAdd(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		cache.Add(n, n)
@@ -90,6 +96,16 @@ func BenchmarkReset(b *testing.B) {
 
 	for n := 0; n < b.N; n++ {
 		c.Reset()
+	}
+}
+
+func BenchmarkForEach(b *testing.B) {
+	cache := cacheMachine.New[int, int](nil)
+
+	populateCache(1, cache)
+
+	for n := 0; n < b.N; n++ {
+		cache.ForEach(func(key, val int) {})
 	}
 }
 

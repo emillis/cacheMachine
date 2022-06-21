@@ -163,6 +163,16 @@ func (c *Cache[TKey, TValue]) Count() int {
 	return len(c.data)
 }
 
+//ForEach runs a loop for each element in the cache. Take care using this method as it locks reading/writing the
+//cache until ForEach completes.
+func (c *Cache[TKey, TValue]) ForEach(f func(TKey, TValue)) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
+	for k, v := range c.data {
+		f(k, v)
+	}
+}
+
 //Reset empties the cache and resets all the counters
 func (c *Cache[TKey, TValue]) Reset() {
 	c.mx.Lock()

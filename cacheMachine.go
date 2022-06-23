@@ -17,6 +17,14 @@ type GetAll[TKey Key, TValue any] interface {
 	GetAll() map[TKey]TValue
 }
 
+type GetAllAndRemove[TKey Key, TValue any] interface {
+	GetAllAndRemove() map[TKey]TValue
+}
+
+type AddBulk[TKey Key, TValue any] interface {
+	AddBulk(d map[TKey]TValue)
+}
+
 //===========[STRUCTS]==================================================================================================
 
 //Cache is the main definition of the cache
@@ -42,15 +50,18 @@ func (c *Cache[TKey, TValue]) remove(key TKey) {
 	delete(c.data, key)
 }
 
-//Creates a copy of the data
+//Creates a copy of the data. This function is not protected by locks
 func (c *Cache[TKey, TValue]) copyData() map[TKey]TValue {
 	cpy := make(map[TKey]TValue)
-	c.mx.RLock()
 	for key, val := range c.data {
 		cpy[key] = val
 	}
-	c.mx.RUnlock()
 	return cpy
+}
+
+//reset clears the cache, but it's not using locks
+func (c *Cache[TKey, TValue]) reset() {
+	c.data = make(map[TKey]TValue)
 }
 
 //------PUBLIC------
@@ -127,7 +138,18 @@ func (c *Cache[TKey, TValue]) GetAndRemove(key TKey) (TValue, bool) {
 
 //GetAll returns all the values stored in the cache
 func (c *Cache[TKey, TValue]) GetAll() map[TKey]TValue {
+	c.mx.RLock()
+	defer c.mx.Unlock()
 	return c.copyData()
+}
+
+//GetAllAndRemove returns and removes all the elements from the cache
+func (c *Cache[TKey, TValue]) GetAllAndRemove() map[TKey]TValue {
+	c.mx.Lock()
+	defer c.mx.Unlock()
+	cpy := c.copyData()
+	c.reset()
+	return cpy
 }
 
 //GetRandomSamples returns mixed set of items. Number of items is defined in the argument, if it exceeds the
@@ -177,7 +199,7 @@ func (c *Cache[TKey, TValue]) ForEach(f func(TKey, TValue)) {
 func (c *Cache[TKey, TValue]) Reset() {
 	c.mx.Lock()
 	defer c.mx.Unlock()
-	c.data = make(map[TKey]TValue)
+	c.reset()
 }
 
 //===========[FUNCTIONALITY]====================================================================================================
@@ -197,4 +219,14 @@ func New[TKey Key, TValue any](initialValues map[TKey]TValue) Cache[TKey, TValue
 //Copy creates identical copy of the cache supplied as an argument
 func Copy[TKey Key, TValue any](d GetAll[TKey, TValue]) Cache[TKey, TValue] {
 	return New[TKey, TValue](d.GetAll())
+}
+
+//Merge copies all data from cache2 into cache1
+func Merge[TKey Key, TValue any](cache1 AddBulk[TKey, TValue], cache2 GetAll[TKey, TValue]) {
+	cache1.AddBulk(cache2.GetAll())
+}
+
+//MergeAndReset copies all data from cache2 into cache1 and wipes cache2 clean right after
+func MergeAndReset[TKey Key, TValue any](cache1 AddBulk[TKey, TValue], cache2 GetAllAndRemove[TKey, TValue]) {
+	cache1.AddBulk(cache2.GetAllAndRemove())
 }

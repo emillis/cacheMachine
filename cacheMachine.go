@@ -74,7 +74,7 @@ func (c *Cache[TKey, TValue]) Add(key TKey, val TValue) {
 }
 
 //AddBulk adds items to cache in bulk
-func (c *Cache[TKey, TValue]) AddBulk(d map[TKey]TValue) {
+func (c Cache[TKey, TValue]) AddBulk(d map[TKey]TValue) {
 	if d == nil {
 		return
 	}
@@ -137,14 +137,14 @@ func (c *Cache[TKey, TValue]) GetAndRemove(key TKey) (TValue, bool) {
 }
 
 //GetAll returns all the values stored in the cache
-func (c *Cache[TKey, TValue]) GetAll() map[TKey]TValue {
+func (c Cache[TKey, TValue]) GetAll() map[TKey]TValue {
 	c.mx.RLock()
-	defer c.mx.Unlock()
+	defer c.mx.RUnlock()
 	return c.copyData()
 }
 
 //GetAllAndRemove returns and removes all the elements from the cache
-func (c *Cache[TKey, TValue]) GetAllAndRemove() map[TKey]TValue {
+func (c Cache[TKey, TValue]) GetAllAndRemove() map[TKey]TValue {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	cpy := c.copyData()

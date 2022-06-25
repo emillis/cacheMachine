@@ -113,7 +113,27 @@ func BenchmarkCopy(b *testing.B) {
 	var c1 = cacheMachine.New[int, int](map[int]int{1: 1})
 
 	for n := 0; n < b.N; n++ {
-		cacheMachine.Copy(c1)
+		cacheMachine.Copy[int, int](c1)
+	}
+
+}
+
+func BenchmarkMerge(b *testing.B) {
+	var c1 = cacheMachine.New[int, int](map[int]int{1: 1})
+	var c2 = cacheMachine.New[int, int](map[int]int{2: 2})
+
+	for n := 0; n < b.N; n++ {
+		cacheMachine.Merge[int, int](c1, c2)
+	}
+
+}
+
+func BenchmarkMergeAndReset(b *testing.B) {
+	var c1 = cacheMachine.New[int, int](map[int]int{1: 1})
+	var c2 = cacheMachine.New[int, int](map[int]int{2: 2})
+
+	for n := 0; n < b.N; n++ {
+		cacheMachine.MergeAndReset[int, int](c1, c2)
 	}
 
 }

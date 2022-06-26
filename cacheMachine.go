@@ -67,7 +67,7 @@ func (c *Cache[TKey, TValue]) reset() {
 //------PUBLIC------
 
 //Add inserts new value into the cache
-func (c *Cache[TKey, TValue]) Add(key TKey, val TValue) {
+func (c Cache[TKey, TValue]) Add(key TKey, val TValue) {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	c.add(key, val)
@@ -87,14 +87,14 @@ func (c Cache[TKey, TValue]) AddBulk(d map[TKey]TValue) {
 }
 
 //Remove removes value from the cache based on the key provided
-func (c *Cache[TKey, TValue]) Remove(key TKey) {
+func (c Cache[TKey, TValue]) Remove(key TKey) {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	c.remove(key)
 }
 
 //RemoveBulk removes cached data based on keys provided
-func (c *Cache[TKey, TValue]) RemoveBulk(keys []TKey) {
+func (c Cache[TKey, TValue]) RemoveBulk(keys []TKey) {
 	if keys == nil || len(keys) < 1 {
 		return
 	}
@@ -107,7 +107,7 @@ func (c *Cache[TKey, TValue]) RemoveBulk(keys []TKey) {
 }
 
 //Get returns value based on the key provided
-func (c *Cache[TKey, TValue]) Get(key TKey) (TValue, bool) {
+func (c Cache[TKey, TValue]) Get(key TKey) (TValue, bool) {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
 	v, exist := c.data[key]
@@ -115,7 +115,7 @@ func (c *Cache[TKey, TValue]) Get(key TKey) (TValue, bool) {
 }
 
 //GetBulk returns a map of key -> value pairs where key is one provided in the slice
-func (c *Cache[TKey, TValue]) GetBulk(d []TKey) map[TKey]TValue {
+func (c Cache[TKey, TValue]) GetBulk(d []TKey) map[TKey]TValue {
 	results := make(map[TKey]TValue)
 
 	c.mx.RLock()
@@ -128,7 +128,7 @@ func (c *Cache[TKey, TValue]) GetBulk(d []TKey) map[TKey]TValue {
 }
 
 //GetAndRemove returns requested value and removes it from the cache
-func (c *Cache[TKey, TValue]) GetAndRemove(key TKey) (TValue, bool) {
+func (c Cache[TKey, TValue]) GetAndRemove(key TKey) (TValue, bool) {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	v, exist := c.data[key]
@@ -154,7 +154,7 @@ func (c Cache[TKey, TValue]) GetAllAndRemove() map[TKey]TValue {
 
 //GetRandomSamples returns mixed set of items. Number of items is defined in the argument, if it exceeds the
 //number of items that are present in the cache, it will return all the cached items
-func (c *Cache[TKey, TValue]) GetRandomSamples(n int) map[TKey]TValue {
+func (c Cache[TKey, TValue]) GetRandomSamples(n int) map[TKey]TValue {
 	results := make(map[TKey]TValue)
 
 	for key, val := range c.data {
@@ -171,7 +171,7 @@ func (c *Cache[TKey, TValue]) GetRandomSamples(n int) map[TKey]TValue {
 }
 
 //Exist checks whether there the key exists in the cache
-func (c *Cache[TKey, TValue]) Exist(key TKey) bool {
+func (c Cache[TKey, TValue]) Exist(key TKey) bool {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
 	_, exist := c.data[key]
@@ -179,7 +179,7 @@ func (c *Cache[TKey, TValue]) Exist(key TKey) bool {
 }
 
 //Count returns number of elements currently present in the cache
-func (c *Cache[TKey, TValue]) Count() int {
+func (c Cache[TKey, TValue]) Count() int {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	return len(c.data)
@@ -187,16 +187,16 @@ func (c *Cache[TKey, TValue]) Count() int {
 
 //ForEach runs a loop for each element in the cache. Take care using this method as it locks reading/writing the
 //cache until ForEach completes.
-func (c *Cache[TKey, TValue]) ForEach(f func(TKey, TValue)) {
-	c.mx.Lock()
-	defer c.mx.Unlock()
-	for k, v := range c.data {
+func (c Cache[TKey, TValue]) ForEach(f func(TKey, TValue)) {
+	d := c.GetAll()
+
+	for k, v := range d {
 		f(k, v)
 	}
 }
 
 //Reset empties the cache and resets all the counters
-func (c *Cache[TKey, TValue]) Reset() {
+func (c Cache[TKey, TValue]) Reset() {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	c.reset()

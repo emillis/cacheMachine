@@ -5,13 +5,19 @@ import (
 	"testing"
 )
 
+//===========[STATIC/CACHE]====================================================================================================
+
 var cache = cacheMachine.New[int, int](nil)
+
+//===========[FUNCTIONALITY]====================================================================================================
 
 func populateCache(n int, c cacheMachine.Cache[int, int]) {
 	for i := 0; i < n; i++ {
 		c.Add(i, i)
 	}
 }
+
+//===========[BENCHMARKS]====================================================================================================
 
 func BenchmarkAdd(b *testing.B) {
 	for n := 0; n < b.N; n++ {
@@ -60,10 +66,11 @@ func BenchmarkGet(b *testing.B) {
 }
 
 func BenchmarkGetBulk(b *testing.B) {
-	cache.Add(7, 8)
+	c := cacheMachine.New[int, int](nil)
+	populateCache(5, c)
 
 	for n := 0; n < b.N; n++ {
-		cache.GetBulk([]int{0})
+		c.GetBulk([]int{0})
 	}
 }
 

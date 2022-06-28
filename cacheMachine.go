@@ -30,8 +30,22 @@ type BulkAdder[TKey Key, TValue any] interface {
 
 //Individual entry in the cache
 type entry[TValue any] struct {
-	Value     TValue    `json:"value" bson:"value"`
+	//The value stored in the cache
+	Value TValue `json:"value" bson:"value"`
+
+	//When was the value added to the cache
 	TimeAdded time.Time `json:"time_added" bson:"time_added"`
+
+	//How long will the cache wait after the last update until it will remove this element
+	TimeoutDuration time.Duration `json:"valid_until" bson:"valid_until"`
+
+	//This is the timer that monitors auto-removal of the element
+	timer *time.Timer
+}
+
+//ResetTimer resets the timer for auto removal of this element from the cache
+func (e entry[TValue]) ResetTimer() {
+	e.timer.Reset(e.TimeoutDuration)
 }
 
 //TODO: Add json encoding
@@ -39,8 +53,9 @@ type entry[TValue any] struct {
 
 //Cache is the main definition of the cache
 type Cache[TKey Key, TValue any] struct {
-	data map[TKey]entry[TValue]
-	mx   sync.RWMutex
+	defaultTimeoutDuration time.Duration
+	data                   map[TKey]entry[TValue]
+	mx                     sync.RWMutex
 }
 
 //------PRIVATE------
@@ -48,8 +63,13 @@ type Cache[TKey Key, TValue any] struct {
 //add method adds an item. This method has no mutex protection
 func (c *Cache[TKey, TValue]) add(key TKey, val TValue) {
 	c.data[key] = entry[TValue]{
-		Value:     val,
-		TimeAdded: time.Now(),
+		Value:           val,
+		TimeAdded:       time.Now(),
+		TimeoutDuration: c.defaultTimeoutDuration,
+		timer: time.AfterFunc(c.defaultTimeoutDuration, func() {
+			//TODO: Check if this working correctly
+			c.Remove(key)
+		}),
 	}
 }
 
@@ -218,10 +238,11 @@ func (c Cache[TKey, TValue]) Reset() {
 //===========[FUNCTIONALITY]====================================================================================================
 
 //New initiates new cache. It can also take in values that will be added to the cache immediately after initiation
-func New[TKey Key, TValue any](initialValues map[TKey]TValue) Cache[TKey, TValue] {
+func New[TKey Key, TValue any](initialValues map[TKey]TValue, timeout *time.Duration) Cache[TKey, TValue] {
 	c := Cache[TKey, TValue]{
 		data: make(map[TKey]entry[TValue]),
 		mx:   sync.RWMutex{},
+		defaultTimeoutDuration: timeout,
 	}
 
 	c.AddBulk(initialValues)

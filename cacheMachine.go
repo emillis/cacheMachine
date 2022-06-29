@@ -7,6 +7,8 @@ import (
 
 //===========[CACHE/STATIC]=============================================================================================
 
+var defaultRequirements = Requirements{}
+
 //===========[INTERFACES]===============================================================================================
 
 //Key defines types that can be used as keys in the cache
@@ -26,12 +28,24 @@ type BulkAdder[TKey Key, TValue any] interface {
 	AddBulk(d map[TKey]TValue)
 }
 
+type Entry[TValue any] interface {
+	Value() TValue
+	ResetTimer()
+	SetTimeoutDuration(time.Duration)
+}
+
 //===========[STRUCTS]==================================================================================================
+
+type Requirements struct {
+	//If this is set, by default, every cache entry will have a timeout of this duration after which
+	//the element will be removed from the cache. This timeout can be changed for individual entry
+	DefaultTimeout time.Duration
+}
 
 //Individual entry in the cache
 type entry[TValue any] struct {
 	//The value stored in the cache
-	Value TValue `json:"value" bson:"value"`
+	Val TValue `json:"value" bson:"value"`
 
 	//When was the value added to the cache
 	TimeAdded time.Time `json:"time_added" bson:"time_added"`
@@ -41,36 +55,63 @@ type entry[TValue any] struct {
 
 	//This is the timer that monitors auto-removal of the element
 	timer *time.Timer
+
+	//Locks
+	mx sync.RWMutex
 }
 
-//ResetTimer resets the timer for auto removal of this element from the cache
+//Value returns the value of this entry
+func (e entry[TValue]) Value() TValue {
+	return e.Val
+}
+
+//ResetTimer resets the countdown timer until the removal of this entry
 func (e entry[TValue]) ResetTimer() {
+	e.mx.Lock()
+	defer e.mx.Unlock()
 	e.timer.Reset(e.TimeoutDuration)
 }
 
+//SetTimeoutDuration sets a new timeout duration. But it does not reset the timer, so whatever duration was set
+//originally will still be running. ResetTimer() would have to be called additionally in order to use newly set duration.
+func (e entry[TValue]) SetTimeoutDuration(t time.Duration) {
+	e.mx.Lock()
+	defer e.mx.Unlock()
+	e.TimeoutDuration = t
+}
+
 //TODO: Add json encoding
-//TODO: Instead of using TValue, create custom type "entry" and have it contain the Value, added date, auto removal, etc..
+//TODO: Instead of using TValue, create custom type "entry" and have it contain the Val, added date, auto removal, etc..
 
 //Cache is the main definition of the cache
+type cache[TKey Key, TValue any] struct {
+	Requirements Requirements
+	data         map[TKey]entry[TValue]
+	mx           sync.RWMutex
+}
+
 type Cache[TKey Key, TValue any] struct {
-	defaultTimeoutDuration time.Duration
-	data                   map[TKey]entry[TValue]
-	mx                     sync.RWMutex
+	cache[TKey, TValue]
 }
 
 //------PRIVATE------
 
 //add method adds an item. This method has no mutex protection
-func (c *Cache[TKey, TValue]) add(key TKey, val TValue) {
-	c.data[key] = entry[TValue]{
-		Value:           val,
+func (c *Cache[TKey, TValue]) add(key TKey, val TValue) Entry[TValue] {
+	e := entry[TValue]{
+		Val:             val,
 		TimeAdded:       time.Now(),
-		TimeoutDuration: c.defaultTimeoutDuration,
-		timer: time.AfterFunc(c.defaultTimeoutDuration, func() {
+		TimeoutDuration: c.cache.Requirements.DefaultTimeout,
+		timer: time.AfterFunc(c.cache.Requirements.DefaultTimeout, func() {
 			//TODO: Check if this working correctly
 			c.Remove(key)
 		}),
+		mx: sync.RWMutex{},
 	}
+
+	c.data[key] = e
+
+	return e
 }
 
 //remove method removes an item, but is not protected by a mutex
@@ -84,10 +125,10 @@ func (c *Cache[TKey, TValue]) remove(key TKey) {
 }
 
 //Creates a copy of the data. This function is not protected by locks
-func (c *Cache[TKey, TValue]) copyData() map[TKey]TValue {
+func (c *Cache[TKey, TValue]) copyValues() map[TKey]TValue {
 	cpy := make(map[TKey]TValue)
 	for key, entry := range c.data {
-		cpy[key] = entry.Value
+		cpy[key] = entry.Val
 	}
 	return cpy
 }
@@ -99,11 +140,11 @@ func (c *Cache[TKey, TValue]) reset() {
 
 //------PUBLIC------
 
-//Add inserts new Value into the cache
-func (c Cache[TKey, TValue]) Add(key TKey, val TValue) {
+//Add inserts new Val into the cache
+func (c Cache[TKey, TValue]) Add(key TKey, val TValue) Entry[TValue] {
 	c.mx.Lock()
 	defer c.mx.Unlock()
-	c.add(key, val)
+	return c.add(key, val)
 }
 
 //AddBulk adds items to cache in bulk
@@ -119,7 +160,7 @@ func (c Cache[TKey, TValue]) AddBulk(d map[TKey]TValue) {
 	}
 }
 
-//Remove removes Value from the cache based on the key provided
+//Remove removes Val from the cache based on the key provided
 func (c Cache[TKey, TValue]) Remove(key TKey) {
 	c.mx.Lock()
 	defer c.mx.Unlock()
@@ -139,48 +180,48 @@ func (c Cache[TKey, TValue]) RemoveBulk(keys []TKey) {
 	}
 }
 
-//Get returns Value based on the key provided
+//Get returns Val based on the key provided
 func (c Cache[TKey, TValue]) Get(key TKey) (TValue, bool) {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
 	entry, exist := c.data[key]
-	return entry.Value, exist
+	return entry.Val, exist
 }
 
-//GetBulk returns a map of key -> Value pairs where key is one provided in the slice
+//GetBulk returns a map of key -> Val pairs where key is one provided in the slice
 func (c Cache[TKey, TValue]) GetBulk(d []TKey) map[TKey]TValue {
 	results := make(map[TKey]TValue)
 
 	c.mx.RLock()
 	for _, k := range d {
-		results[k] = c.data[k].Value
+		results[k] = c.data[k].Val
 	}
 	c.mx.RUnlock()
 
 	return results
 }
 
-//GetAndRemove returns requested Value and removes it from the cache
+//GetAndRemove returns requested Val and removes it from the cache
 func (c Cache[TKey, TValue]) GetAndRemove(key TKey) (TValue, bool) {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	entry, exist := c.data[key]
 	c.remove(key)
-	return entry.Value, exist
+	return entry.Val, exist
 }
 
 //GetAll returns all the values stored in the cache
 func (c Cache[TKey, TValue]) GetAll() map[TKey]TValue {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
-	return c.copyData()
+	return c.copyValues()
 }
 
 //GetAllAndRemove returns and removes all the elements from the cache
 func (c Cache[TKey, TValue]) GetAllAndRemove() map[TKey]TValue {
 	c.mx.Lock()
 	defer c.mx.Unlock()
-	cpy := c.copyData()
+	cpy := c.copyValues()
 	c.reset()
 	return cpy
 }
@@ -195,7 +236,7 @@ func (c Cache[TKey, TValue]) GetRandomSamples(n int) map[TKey]TValue {
 			break
 		}
 
-		results[key] = entry.Value
+		results[key] = entry.Val
 
 		n--
 	}
@@ -235,24 +276,34 @@ func (c Cache[TKey, TValue]) Reset() {
 	c.reset()
 }
 
+//Requirements returns requirements used from this cache
+func (c Cache[TKey, TValue]) Requirements() Requirements {
+	return c.cache.Requirements
+}
+
 //===========[FUNCTIONALITY]====================================================================================================
 
 //New initiates new cache. It can also take in values that will be added to the cache immediately after initiation
-func New[TKey Key, TValue any](initialValues map[TKey]TValue, timeout *time.Duration) Cache[TKey, TValue] {
-	c := Cache[TKey, TValue]{
-		data: make(map[TKey]entry[TValue]),
-		mx:   sync.RWMutex{},
-		defaultTimeoutDuration: timeout,
+func New[TKey Key, TValue any](r *Requirements) Cache[TKey, TValue] {
+	if r == nil {
+		r = &defaultRequirements
 	}
 
-	c.AddBulk(initialValues)
+	c := cache[TKey, TValue]{
+		Requirements: *r,
+		data:         make(map[TKey]entry[TValue]),
+		mx:           sync.RWMutex{},
+	}
 
-	return c
+	return Cache[TKey, TValue]{c}
 }
 
 //Copy creates identical copy of the cache supplied as an argument
-func Copy[TKey Key, TValue any](d AllGetter[TKey, TValue]) Cache[TKey, TValue] {
-	return New[TKey, TValue](d.GetAll())
+func Copy[TKey Key, TValue any](c Cache[TKey, TValue]) Cache[TKey, TValue] {
+	req := c.Requirements()
+	nc := New[TKey, TValue](&req)
+	nc.AddBulk(c.GetAll())
+	return nc
 }
 
 //Merge copies all data from cache2 into cache1

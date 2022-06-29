@@ -17,6 +17,16 @@ func populateCache(n int, c cacheMachine.Cache[int, int]) {
 	}
 }
 
+func initializeFullCache(n int) cacheMachine.Cache[int, int] {
+	c := cacheMachine.New[int, int](nil)
+
+	for i := 0; i < n; i++ {
+		c.Add(i, i)
+	}
+
+	return c
+}
+
 //===========[BENCHMARKS]====================================================================================================
 
 func BenchmarkAdd(b *testing.B) {
@@ -117,7 +127,7 @@ func BenchmarkForEach(b *testing.B) {
 }
 
 func BenchmarkCopy(b *testing.B) {
-	var c1 = cacheMachine.New[int, int](map[int]int{1: 1})
+	var c1 = initializeFullCache(1)
 
 	for n := 0; n < b.N; n++ {
 		cacheMachine.Copy[int, int](c1)
@@ -126,8 +136,8 @@ func BenchmarkCopy(b *testing.B) {
 }
 
 func BenchmarkMerge(b *testing.B) {
-	var c1 = cacheMachine.New[int, int](map[int]int{1: 1})
-	var c2 = cacheMachine.New[int, int](map[int]int{2: 2})
+	var c1 = initializeFullCache(1)
+	var c2 = initializeFullCache(2)
 
 	for n := 0; n < b.N; n++ {
 		cacheMachine.Merge[int, int](c1, c2)
@@ -136,8 +146,8 @@ func BenchmarkMerge(b *testing.B) {
 }
 
 func BenchmarkMergeAndReset(b *testing.B) {
-	var c1 = cacheMachine.New[int, int](map[int]int{1: 1})
-	var c2 = cacheMachine.New[int, int](map[int]int{2: 2})
+	var c1 = initializeFullCache(1)
+	var c2 = initializeFullCache(2)
 
 	for n := 0; n < b.N; n++ {
 		cacheMachine.MergeAndReset[int, int](c1, c2)

@@ -40,6 +40,9 @@ type Requirements struct {
 	//If this is set, by default, every cache entry will have a timeout of this duration after which
 	//the element will be removed from the cache. This timeout can be changed for individual entry
 	DefaultTimeout time.Duration
+
+	//Defines whether the DefaultTimeout is in use
+	timeoutInUse bool
 }
 
 //Individual entry in the cache
@@ -89,7 +92,6 @@ type cache[TKey Key, TValue any] struct {
 	data         map[TKey]entry[TValue]
 	mx           sync.RWMutex
 }
-
 type Cache[TKey Key, TValue any] struct {
 	cache[TKey, TValue]
 }
@@ -102,11 +104,14 @@ func (c *Cache[TKey, TValue]) add(key TKey, val TValue) Entry[TValue] {
 		Val:             val,
 		TimeAdded:       time.Now(),
 		TimeoutDuration: c.cache.Requirements.DefaultTimeout,
-		timer: time.AfterFunc(c.cache.Requirements.DefaultTimeout, func() {
+		mx:              sync.RWMutex{},
+	}
+
+	if c.cache.Requirements.timeoutInUse {
+		e.timer = time.AfterFunc(c.cache.Requirements.DefaultTimeout, func() {
 			//TODO: Check if this working correctly
-			c.Remove(key)
-		}),
-		mx: sync.RWMutex{},
+			//c.Remove(key)
+		})
 	}
 
 	c.data[key] = e
@@ -283,11 +288,19 @@ func (c Cache[TKey, TValue]) Requirements() Requirements {
 
 //===========[FUNCTIONALITY]====================================================================================================
 
+//Adjusts and parses the Requirements
+func makeRequirementsSensible(r *Requirements) {
+	//Checking whether the DefaultTimeout is in use. If yes, it sets timeoutInUse to true
+	r.timeoutInUse = r.DefaultTimeout.String() != "0s"
+}
+
 //New initiates new cache. It can also take in values that will be added to the cache immediately after initiation
 func New[TKey Key, TValue any](r *Requirements) Cache[TKey, TValue] {
 	if r == nil {
 		r = &defaultRequirements
 	}
+
+	makeRequirementsSensible(r)
 
 	c := cache[TKey, TValue]{
 		Requirements: *r,

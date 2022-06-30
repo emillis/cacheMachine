@@ -5,10 +5,6 @@ import (
 	"testing"
 )
 
-//===========[STATIC/CACHE]====================================================================================================
-
-var cache = cacheMachine.New[int, int](nil)
-
 //===========[FUNCTIONALITY]====================================================================================================
 
 func populateCache(n int, c cacheMachine.Cache[int, int]) {
@@ -17,8 +13,8 @@ func populateCache(n int, c cacheMachine.Cache[int, int]) {
 	}
 }
 
-func initializeFullCache(n int) cacheMachine.Cache[int, int] {
-	c := cacheMachine.New[int, int](nil)
+func initializeFullCache(n int, r *cacheMachine.Requirements) cacheMachine.Cache[int, int] {
+	c := cacheMachine.New[int, int](r)
 
 	for i := 0; i < n; i++ {
 		c.Add(i, i)
@@ -30,48 +26,52 @@ func initializeFullCache(n int) cacheMachine.Cache[int, int] {
 //===========[BENCHMARKS]====================================================================================================
 
 func BenchmarkAdd(b *testing.B) {
+	c := initializeFullCache(0, nil)
+
 	for n := 0; n < b.N; n++ {
-		cache.Add(n, n)
+		c.Add(n, n)
 	}
 }
 
 func BenchmarkAddBulk(b *testing.B) {
+	c := initializeFullCache(0, nil)
+
 	for n := 0; n < b.N; n++ {
-		cache.AddBulk(map[int]int{
-			n: n,
-			n: n,
-			n: n,
-			n: n,
+		c.AddBulk(map[int]int{
 			n: n,
 		})
 	}
 }
 
 func BenchmarkRemove(b *testing.B) {
+	c := initializeFullCache(0, nil)
+
 	for n := 0; n < b.N; n++ {
-		cache.Remove(n)
+		c.Remove(n)
 	}
 }
 
 func BenchmarkRemoveBulk(b *testing.B) {
+	c := initializeFullCache(0, nil)
+
 	for n := 0; n < b.N; n++ {
-		cache.RemoveBulk([]int{n, n + 1, n + 2})
+		c.RemoveBulk([]int{n, n + 1, n + 2})
 	}
 }
 
 func BenchmarkExist(b *testing.B) {
-	cache.Add(7, 8)
+	c := initializeFullCache(2, nil)
 
 	for n := 0; n < b.N; n++ {
-		cache.Exist(7)
+		c.Exist(1)
 	}
 }
 
 func BenchmarkGet(b *testing.B) {
-	cache.Add(7, 8)
+	c := initializeFullCache(2, nil)
 
 	for n := 0; n < b.N; n++ {
-		cache.Get(7)
+		c.Get(1)
 	}
 }
 
@@ -85,26 +85,26 @@ func BenchmarkGetBulk(b *testing.B) {
 }
 
 func BenchmarkGetAndRemove(b *testing.B) {
-	cache.Add(7, 8)
+	c := initializeFullCache(2, nil)
 
 	for n := 0; n < b.N; n++ {
-		cache.GetAndRemove(7)
+		c.GetAndRemove(1)
 	}
 }
 
 func BenchmarkGetAll(b *testing.B) {
-	cache.Add(7, 8)
+	c := initializeFullCache(1, nil)
 
 	for n := 0; n < b.N; n++ {
-		cache.GetAll()
+		c.GetAll()
 	}
 }
 
 func BenchmarkCount(b *testing.B) {
-	cache.Add(7, 8)
+	c := initializeFullCache(2, nil)
 
 	for n := 0; n < b.N; n++ {
-		cache.Count()
+		c.Count()
 	}
 }
 
@@ -127,7 +127,7 @@ func BenchmarkForEach(b *testing.B) {
 }
 
 func BenchmarkCopy(b *testing.B) {
-	var c1 = initializeFullCache(1)
+	var c1 = initializeFullCache(1, nil)
 
 	for n := 0; n < b.N; n++ {
 		cacheMachine.Copy[int, int](c1)
@@ -136,8 +136,8 @@ func BenchmarkCopy(b *testing.B) {
 }
 
 func BenchmarkMerge(b *testing.B) {
-	var c1 = initializeFullCache(1)
-	var c2 = initializeFullCache(2)
+	var c1 = initializeFullCache(1, nil)
+	var c2 = initializeFullCache(2, nil)
 
 	for n := 0; n < b.N; n++ {
 		cacheMachine.Merge[int, int](c1, c2)
@@ -146,8 +146,8 @@ func BenchmarkMerge(b *testing.B) {
 }
 
 func BenchmarkMergeAndReset(b *testing.B) {
-	var c1 = initializeFullCache(1)
-	var c2 = initializeFullCache(2)
+	var c1 = initializeFullCache(1, nil)
+	var c2 = initializeFullCache(2, nil)
 
 	for n := 0; n < b.N; n++ {
 		cacheMachine.MergeAndReset[int, int](c1, c2)

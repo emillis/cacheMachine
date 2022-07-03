@@ -275,7 +275,7 @@ func (c Cache[TKey, TValue]) ForEach(f func(TKey, TValue)) {
 }
 
 //Reset empties the cache and resets all the counters
-func (c Cache[TKey, TValue]) Reset() {
+func (c *Cache[TKey, TValue]) Reset() {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	c.reset()

@@ -121,11 +121,6 @@ func (c *Cache[TKey, TValue]) add(key TKey, val TValue) Entry[TValue] {
 
 //remove method removes an item, but is not protected by a mutex
 func (c *Cache[TKey, TValue]) remove(key TKey) {
-	//If data doesn't exist, there's no need to perform further operations
-	if _, exist := c.data[key]; !exist {
-		return
-	}
-
 	delete(c.data, key)
 }
 
@@ -223,7 +218,7 @@ func (c Cache[TKey, TValue]) GetAll() map[TKey]TValue {
 }
 
 //GetAllAndRemove returns and removes all the elements from the cache
-func (c Cache[TKey, TValue]) GetAllAndRemove() map[TKey]TValue {
+func (c *Cache[TKey, TValue]) GetAllAndRemove() map[TKey]TValue {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	cpy := c.copyValues()

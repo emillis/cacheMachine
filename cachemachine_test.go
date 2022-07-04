@@ -129,3 +129,78 @@ func TestCache_Reset(t *testing.T) {
 		t.Errorf("Expected to have cache of size 0, got %d", l)
 	}
 }
+
+func TestCache_ForEach(t *testing.T) {
+	c := initializeFullCache(10, nil)
+
+	desiredValue := 45
+	i := 0
+
+	c.ForEach(func(k, v int) {
+		i += v
+	})
+
+	if i != desiredValue {
+		t.Errorf("Desired value is %d, got %d", desiredValue, i)
+	}
+}
+
+func TestCache_GetAllAndRemove(t *testing.T) {
+	c := initializeFullCache(10, nil)
+
+	d := c.GetAllAndRemove()
+
+	cLen := len(c.data)
+	dLen := len(d)
+
+	if dLen != 10 || cLen != 0 {
+		t.Errorf("Expected to have 0 elements in cache after GetAllAndRemove() was called and 10 elements returned from it, but received %d elements in cache and %d received from GetAllAndRemove()", cLen, dLen)
+	}
+}
+
+func TestCache_GetAndRemove(t *testing.T) {
+	c := initializeFullCache(10, nil)
+
+	elementToRemove := 5
+
+	c.GetAndRemove(elementToRemove)
+
+	cLen := len(c.data)
+	_, exist := c.data[elementToRemove]
+
+	if cLen != 9 || exist {
+		t.Errorf("Expected cache length is 9 and presence of the removed element in the cache to be false, got cach length %d and presence %t", cLen, exist)
+	}
+
+}
+
+func TestCache_GetRandomSamples(t *testing.T) {
+	c := initializeFullCache(10, nil)
+
+	numberOfSamples := 4
+	samples := c.GetRandomSamples(numberOfSamples)
+	lenSamples := len(samples)
+
+	if lenSamples != numberOfSamples {
+		t.Errorf("Expected to have %d samples, got %d", numberOfSamples, lenSamples)
+	}
+
+	for k, _ := range samples {
+		if _, exist := c.data[k]; !exist {
+			t.Errorf("Key %d received from GetRandomSamples() method but it doesn't actually exist in the cache!", k)
+		}
+	}
+}
+
+func TestCache_RemoveBulk(t *testing.T) {
+	c := initializeFullCache(10, nil)
+
+	c.RemoveBulk([]int{0, 2, 4, 6, 8})
+
+	expectedLength := 5
+	cLen := len(c.data)
+
+	if cLen != expectedLength {
+		t.Errorf("Expected cache size is %d, got %d", expectedLength, cLen)
+	}
+}

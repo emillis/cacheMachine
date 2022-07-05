@@ -2,6 +2,7 @@ package cacheMachine
 
 import (
 	"testing"
+	"time"
 )
 
 //===========[FUNCTIONALITY]====================================================================================================
@@ -185,7 +186,7 @@ func TestCache_GetRandomSamples(t *testing.T) {
 		t.Errorf("Expected to have %d samples, got %d", numberOfSamples, lenSamples)
 	}
 
-	for k, _ := range samples {
+	for k := range samples {
 		if _, exist := c.data[k]; !exist {
 			t.Errorf("Key %d received from GetRandomSamples() method but it doesn't actually exist in the cache!", k)
 		}
@@ -202,5 +203,83 @@ func TestCache_RemoveBulk(t *testing.T) {
 
 	if cLen != expectedLength {
 		t.Errorf("Expected cache size is %d, got %d", expectedLength, cLen)
+	}
+}
+
+func TestNew(t *testing.T) {
+	c1 := New[int, int](nil)
+	c2 := New[int, int](&Requirements{DefaultTimeout: time.Second * 30})
+
+	c1Len := len(c1.data)
+	c2Len := len(c2.data)
+
+	if c1Len > 0 || c2Len > 0 {
+		t.Errorf("Expected to have cache sizes of 0 0 0, got %d %d", c1Len, c2Len)
+	}
+
+	req1 := c1.Requirements()
+
+	if req1.timeoutInUse {
+		t.Errorf("Expected cache1 timeoutInUse to be false, got %t", req1.timeoutInUse)
+	}
+
+	req2 := c2.Requirements()
+
+	if !req2.timeoutInUse {
+		t.Errorf("Expected cache2 timeoutInUse to be true, got %t", req2.timeoutInUse)
+	}
+
+	tm := req2.DefaultTimeout.String()
+
+	if tm != "30s" {
+		t.Errorf("Cache2 expected to have DefaultTimeout of 30s, got %s", tm)
+	}
+}
+
+func TestCopy(t *testing.T) {
+	c1 := initializeFullCache(50, &Requirements{DefaultTimeout: time.Second * 30})
+	c2 := Copy(c1)
+
+	c2Len := len(c2.data)
+	tm := c2.Requirements().DefaultTimeout.String()
+	timeoutInUse := c2.Requirements().timeoutInUse
+
+	if c2Len != 50 {
+		t.Errorf("Expected cache2 length is 50, got %d", c2Len)
+	}
+
+	if tm != "30s" || !timeoutInUse {
+		t.Errorf("Expected cache2 to have DefaultTimeout of 30s and timeoutInUse to be true, got %s, %t", tm, timeoutInUse)
+	}
+}
+
+func TestMerge(t *testing.T) {
+	main := initializeFullCache(10, nil)
+	secondary := initializeFullCache(20, nil)
+
+	Merge[int, int](main, secondary)
+
+	mainLen := len(main.data)
+
+	if mainLen != 20 {
+		t.Errorf("Expected the main cache to have 20 elements in it, got %d", mainLen)
+	}
+}
+
+func TestMergeAndReset(t *testing.T) {
+	main := initializeFullCache(10, nil)
+	secondary := initializeFullCache(20, nil)
+
+	MergeAndReset[int, int](main, &secondary)
+
+	mainLen := len(main.data)
+	secondaryLen := len(secondary.data)
+
+	if mainLen != 20 {
+		t.Errorf("Expected the main cache to have 20 elements in it, got %d", mainLen)
+	}
+
+	if secondaryLen != 0 {
+		t.Errorf("Expected secondary cache to have 0 items in it, got %d", secondaryLen)
 	}
 }

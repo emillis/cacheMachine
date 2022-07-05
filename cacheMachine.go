@@ -84,7 +84,6 @@ func (e entry[TValue]) SetTimeoutDuration(t time.Duration) {
 }
 
 //TODO: Add json encoding
-//TODO: Instead of using TValue, create custom type "entry" and have it contain the Val, added date, auto removal, etc..
 
 //Cache is the main definition of the cache
 type cache[TKey Key, TValue any] struct {

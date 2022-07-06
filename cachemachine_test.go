@@ -283,3 +283,40 @@ func TestMergeAndReset(t *testing.T) {
 		t.Errorf("Expected secondary cache to have 0 items in it, got %d", secondaryLen)
 	}
 }
+
+func TestCache_Requirements(t *testing.T) {
+	c := initializeFullCache(10, &Requirements{DefaultTimeout: time.Millisecond * 500})
+
+	timeoutUsed := c.Requirements().timeoutInUse
+
+	if !timeoutUsed {
+		t.Errorf("timeoutInUse expected to be true, got %t", timeoutUsed)
+	}
+
+	cLen := len(c.data)
+
+	if cLen != 10 {
+		t.Errorf("Expected to have 10 items in the cache, got %d", cLen)
+	}
+
+	time.Sleep(time.Millisecond * 750)
+
+	cLen = len(c.data)
+
+	if cLen != 0 {
+		t.Errorf("Expected to have 0 items in the cache, got %d", cLen)
+	}
+}
+
+func TestEntry_Value(t *testing.T) {
+	c := initializeFullCache(0, nil)
+
+	v1 := c.Add(1, 1).Value()
+	v2 := c.Add(2, 2).Value()
+	v3 := c.Add(3, 3).Value()
+
+	if v1 != 1 || v2 != 2 || v3 != 3 {
+		t.Errorf("Expected to have values 1, 2, 3. Got %d, %d, %d", v1, v2, v3)
+	}
+}
+

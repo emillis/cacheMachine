@@ -31,7 +31,7 @@ type BulkAdder[TKey Key, TValue any] interface {
 type Entry[TValue any] interface {
 	Value() TValue
 	ResetTimer()
-	SetTimeoutDuration(time.Duration)
+	StopTimer()
 }
 
 //===========[STRUCTS]==================================================================================================
@@ -64,24 +64,32 @@ type entry[TValue any] struct {
 }
 
 //Value returns the value of this entry
-func (e entry[TValue]) Value() TValue {
+func (e *entry[TValue]) Value() TValue {
 	return e.Val
 }
 
 //ResetTimer resets the countdown timer until the removal of this entry
-func (e entry[TValue]) ResetTimer() {
+func (e *entry[TValue]) ResetTimer() {
+	if e.timer == nil {
+		return
+	}
+
 	e.mx.Lock()
 	defer e.mx.Unlock()
 	e.timer.Reset(e.TimeoutDuration)
 }
 
-//SetTimeoutDuration sets a new timeout duration. But it does not reset the timer, so whatever duration was set
-//originally will still be running. ResetTimer() would have to be called additionally in order to use newly set duration.
-func (e entry[TValue]) SetTimeoutDuration(t time.Duration) {
+//StopTimer stops the countdown timer until the element is removed
+func (e *entry[TValue]) StopTimer() {
+	if e.timer == nil {
+		return
+	}
+
 	e.mx.Lock()
 	defer e.mx.Unlock()
-	e.TimeoutDuration = t
+	e.timer.Stop()
 }
+
 
 //TODO: Add json encoding
 
@@ -104,18 +112,18 @@ func (c *Cache[TKey, TValue]) add(key TKey, val TValue) Entry[TValue] {
 		TimeAdded:       time.Now(),
 		TimeoutDuration: c.cache.Requirements.DefaultTimeout,
 		mx:              sync.RWMutex{},
+		timer:           &time.Timer{},
 	}
 
 	if c.cache.Requirements.timeoutInUse {
 		e.timer = time.AfterFunc(c.cache.Requirements.DefaultTimeout, func() {
-			//TODO: Check if this working correctly
-			//c.Remove(key)
+			c.Remove(key)
 		})
 	}
 
 	c.data[key] = e
 
-	return e
+	return &e
 }
 
 //remove method removes an item, but is not protected by a mutex

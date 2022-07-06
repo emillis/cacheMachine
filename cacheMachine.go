@@ -90,7 +90,6 @@ func (e *entry[TValue]) StopTimer() {
 	e.timer.Stop()
 }
 
-
 //TODO: Add json encoding
 
 //Cache is the main definition of the cache
@@ -212,9 +211,9 @@ func (c Cache[TKey, TValue]) GetBulk(d []TKey) map[TKey]TValue {
 func (c Cache[TKey, TValue]) GetAndRemove(key TKey) (TValue, bool) {
 	c.mx.Lock()
 	defer c.mx.Unlock()
-	entry, exist := c.data[key]
+	e, exist := c.data[key]
 	c.remove(key)
-	return entry.Val, exist
+	return e.Val, exist
 }
 
 //GetAll returns all the values stored in the cache

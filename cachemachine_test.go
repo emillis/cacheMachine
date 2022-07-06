@@ -293,7 +293,7 @@ func TestCache_Requirements(t *testing.T) {
 		t.Errorf("timeoutInUse expected to be true, got %t", timeoutUsed)
 	}
 
-	cLen := len(c.data)
+	cLen := c.Count()
 
 	if cLen != 10 {
 		t.Errorf("Expected to have 10 items in the cache, got %d", cLen)
@@ -301,7 +301,7 @@ func TestCache_Requirements(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 750)
 
-	cLen = len(c.data)
+	cLen = c.Count()
 
 	if cLen != 0 {
 		t.Errorf("Expected to have 0 items in the cache, got %d", cLen)
@@ -319,4 +319,3 @@ func TestEntry_Value(t *testing.T) {
 		t.Errorf("Expected to have values 1, 2, 3. Got %d, %d, %d", v1, v2, v3)
 	}
 }
-

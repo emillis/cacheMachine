@@ -32,6 +32,7 @@ type Entry[TValue any] interface {
 	Value() TValue
 	ResetTimer()
 	StopTimer()
+	TimerExist() bool
 }
 
 //===========[STRUCTS]==================================================================================================
@@ -79,6 +80,15 @@ func (e *entry[TValue]) ResetTimer() {
 	e.timer.Reset(e.TimeoutDuration)
 }
 
+//TimerExist returns time left until removal of the entity
+func (e *entry[TValue]) TimerExist() bool {
+	if e.timer != nil {
+		return true
+	}
+
+	return false
+}
+
 //StopTimer stops the countdown timer until the element is removed
 func (e *entry[TValue]) StopTimer() {
 	if e.timer == nil {
@@ -111,7 +121,6 @@ func (c *Cache[TKey, TValue]) add(key TKey, val TValue) Entry[TValue] {
 		TimeAdded:       time.Now(),
 		TimeoutDuration: c.cache.Requirements.DefaultTimeout,
 		mx:              sync.RWMutex{},
-		timer:           &time.Timer{},
 	}
 
 	if c.cache.Requirements.timeoutInUse {

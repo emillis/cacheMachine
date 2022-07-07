@@ -319,3 +319,15 @@ func TestEntry_Value(t *testing.T) {
 		t.Errorf("Expected to have values 1, 2, 3. Got %d, %d, %d", v1, v2, v3)
 	}
 }
+
+func TestEntry_TimerExist(t *testing.T) {
+	c1 := initializeFullCache(1, &Requirements{DefaultTimeout: time.Second * 30})
+	c2 := initializeFullCache(1, nil)
+
+	c1Exist := c1.Add(2, 2).TimerExist()
+	c2Exist := c2.Add(2, 2).TimerExist()
+
+	if !c1Exist || c2Exist {
+		t.Errorf("Expected TimerExist method to return true from cache1 and false from cache2, got %t, %t", c1Exist, c2Exist)
+	}
+}

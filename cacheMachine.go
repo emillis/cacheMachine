@@ -33,6 +33,7 @@ type Entry[TValue any] interface {
 	ResetTimer()
 	StopTimer()
 	TimerExist() bool
+	TimeRemaining() time.Duration
 }
 
 //===========[STRUCTS]==================================================================================================
@@ -60,6 +61,9 @@ type entry[TValue any] struct {
 	//This is the timer that monitors auto-removal of the element
 	timer *time.Timer
 
+	//Stores time when the last timer reset happened
+	lastReset time.Time
+
 	//Locks
 	mx sync.RWMutex
 }
@@ -78,6 +82,7 @@ func (e *entry[TValue]) ResetTimer() {
 	e.mx.Lock()
 	defer e.mx.Unlock()
 	e.timer.Reset(e.TimeoutDuration)
+	e.lastReset = time.Now()
 }
 
 //TimerExist returns time left until removal of the entity
@@ -100,6 +105,11 @@ func (e *entry[TValue]) StopTimer() {
 	e.timer.Stop()
 }
 
+//TimeRemaining returns time remaining until the removal of the entity
+func (e *entry[TValue]) TimeRemaining() time.Duration {
+	return e.lastReset.Add(e.TimeoutDuration).Sub(time.Now())
+}
+
 //TODO: Add json encoding
 
 //Cache is the main definition of the cache
@@ -116,9 +126,11 @@ type Cache[TKey Key, TValue any] struct {
 
 //add method adds an item. This method has no mutex protection
 func (c *Cache[TKey, TValue]) add(key TKey, val TValue) Entry[TValue] {
+	now := time.Now()
+
 	e := entry[TValue]{
 		Val:             val,
-		TimeAdded:       time.Now(),
+		TimeAdded:       now,
 		TimeoutDuration: c.cache.Requirements.DefaultTimeout,
 		mx:              sync.RWMutex{},
 	}
@@ -127,6 +139,8 @@ func (c *Cache[TKey, TValue]) add(key TKey, val TValue) Entry[TValue] {
 		e.timer = time.AfterFunc(c.cache.Requirements.DefaultTimeout, func() {
 			c.Remove(key)
 		})
+
+		e.lastReset = now
 	}
 
 	c.data[key] = e

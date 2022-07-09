@@ -33,7 +33,7 @@ type Entry[TValue any] interface {
 	ResetTimer()
 	StopTimer()
 	TimerExist() bool
-	TimeRemaining() time.Duration
+	TimeLeft() time.Time
 }
 
 //===========[STRUCTS]==================================================================================================
@@ -105,9 +105,9 @@ func (e *entry[TValue]) StopTimer() {
 	e.timer.Stop()
 }
 
-//TimeRemaining returns time remaining until the removal of the entity
-func (e *entry[TValue]) TimeRemaining() time.Duration {
-	return e.lastReset.Add(e.TimeoutDuration).Sub(time.Now())
+//TimeLeft returns time when the entity will be removed
+func (e *entry[TValue]) TimeLeft() time.Time {
+	return e.lastReset.Add(e.TimeoutDuration)
 }
 
 //TODO: Add json encoding

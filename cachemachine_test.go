@@ -332,17 +332,16 @@ func TestEntry_TimerExist(t *testing.T) {
 	}
 }
 
-//func TestEntry_TimeLeft(t *testing.T) {
-	//c := initializeFullCache(0, &Requirements{DefaultTimeout: time.Second * 30})
-	//e1 := c.Add(1, 1)
-	//
-	//time.Sleep(time.Second * 1)
-	//
-	//remainingSeconds := e1.TimeLeft()
-	//
-	//fmt.Println(remainingSeconds)
+func TestEntry_TimeLeft(t *testing.T) {
+	c := initializeFullCache(0, &Requirements{DefaultTimeout: time.Second * 30})
+	e1 := c.Add(1, 1)
 
-	//if remainingSeconds != 29 {
-	//	t.Errorf("Expected to have remaining seconds to be 29, got %d", remainingSeconds)
-	//}
-//}
+	time.Sleep(time.Second * 1)
+
+	expected := time.Now().Add(time.Second * 29).Second()
+	got := e1.TimeLeft().Second()
+
+	if expected != got {
+		t.Errorf("Expected to have %d, got %d", expected, got)
+	}
+}

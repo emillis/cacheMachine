@@ -274,6 +274,14 @@ func (c Cache[TKey, TValue]) Get(key TKey) (TValue, bool) {
 	return entry.Val, exist
 }
 
+//GetEntry returns Entry interface for the value saved in the cache
+func (c Cache[TKey, TValue]) GetEntry(key TKey) Entry[TValue] {
+	c.mx.RLock()
+	defer c.mx.RUnlock()
+	entry := c.data[key]
+	return &entry
+}
+
 //GetBulk returns a map of key -> Val pairs where key is one provided in the slice
 func (c Cache[TKey, TValue]) GetBulk(d []TKey) map[TKey]TValue {
 	results := make(map[TKey]TValue)

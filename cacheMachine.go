@@ -34,6 +34,8 @@ type Entry[TValue any] interface {
 	StopTimer()
 	TimerExist() bool
 	TimeLeft() time.Time
+	SetTimer(duration time.Duration)
+	SetAndResetTimer(duration time.Duration)
 }
 
 //===========[STRUCTS]==================================================================================================
@@ -68,6 +70,25 @@ type entry[TValue any] struct {
 	mx sync.RWMutex
 }
 
+//------PRIVATE------
+
+//Sets a new duration after which the entity is removed. This method is not protected by a mutex
+func (e *entry[TValue]) newTimeoutDuration(duration time.Duration) {
+	e.TimeoutDuration = duration
+}
+
+//Resets timeout duration back to the beginning. This is not protected by a mutex
+func (e *entry[TValue]) resetTimeout() {
+	if e.timer == nil {
+		return
+	}
+
+	e.timer.Reset(e.TimeoutDuration)
+	e.lastReset = time.Now()
+}
+
+//------PUBLIC------
+
 //Value returns the value of this entry
 func (e *entry[TValue]) Value() TValue {
 	return e.Val
@@ -75,14 +96,9 @@ func (e *entry[TValue]) Value() TValue {
 
 //ResetTimer resets the countdown timer until the removal of this entry
 func (e *entry[TValue]) ResetTimer() {
-	if e.timer == nil {
-		return
-	}
-
 	e.mx.Lock()
 	defer e.mx.Unlock()
-	e.timer.Reset(e.TimeoutDuration)
-	e.lastReset = time.Now()
+	e.resetTimeout()
 }
 
 //TimerExist returns time left until removal of the entity
@@ -108,6 +124,23 @@ func (e *entry[TValue]) StopTimer() {
 //TimeLeft returns time when the entity will be removed
 func (e *entry[TValue]) TimeLeft() time.Time {
 	return e.lastReset.Add(e.TimeoutDuration)
+}
+
+//SetTimer sets new duration after which entity is removed. This method does not force entity to start using the new
+//timeout duration. To achieve that, you need to either use "SetAndResetTimer" method or additionally call
+//"ResetTimer" method
+func (e *entry[TValue]) SetTimer(duration time.Duration) {
+	e.mx.Lock()
+	defer e.mx.Unlock()
+	e.newTimeoutDuration(duration)
+}
+
+//SetAndResetTimer does exactly what SetTimer, but also resets the timeout
+func (e *entry[TValue]) SetAndResetTimer(duration time.Duration) {
+	e.mx.Lock()
+	defer e.mx.Unlock()
+	e.newTimeoutDuration(duration)
+	e.resetTimeout()
 }
 
 //TODO: Add json encoding

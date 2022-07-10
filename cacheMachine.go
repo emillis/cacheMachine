@@ -181,6 +181,23 @@ func (c *Cache[TKey, TValue]) add(key TKey, val TValue) Entry[TValue] {
 	return &e
 }
 
+func (c *Cache[TKey, TValue]) addWithTimeout(key TKey, val TValue, t time.Duration) Entry[TValue] {
+	now := time.Now()
+
+	e := entry[TValue]{
+		Val:             val,
+		TimeAdded:       now,
+		TimeoutDuration: t,
+		mx:              sync.RWMutex{},
+		timer:           time.AfterFunc(c.cache.Requirements.DefaultTimeout, func() { c.Remove(key) }),
+		lastReset:       now,
+	}
+
+	c.data[key] = e
+
+	return &e
+}
+
 //remove method removes an item, but is not protected by a mutex
 func (c *Cache[TKey, TValue]) remove(key TKey) {
 	delete(c.data, key)
@@ -202,11 +219,18 @@ func (c *Cache[TKey, TValue]) reset() {
 
 //------PUBLIC------
 
-//Add inserts new Val into the cache
+//Add inserts new key:value pair into the cache
 func (c Cache[TKey, TValue]) Add(key TKey, val TValue) Entry[TValue] {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	return c.add(key, val)
+}
+
+//AddWithTimeout does the same as method "Add" but also sets timer for automatic removal of the entry
+func (c Cache[TKey, TValue]) AddWithTimeout(key TKey, val TValue, timeout time.Duration) Entry[TValue] {
+	c.mx.Lock()
+	defer c.mx.Unlock()
+	return c.addWithTimeout(key, val, timeout)
 }
 
 //AddBulk adds items to cache in bulk

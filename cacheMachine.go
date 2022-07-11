@@ -304,6 +304,15 @@ func (c Cache[TKey, TValue]) GetAndRemove(key TKey) (TValue, bool) {
 	return e.Val, exist
 }
 
+//GetAndRemoveEntry returns Entry interface and removes the entity from the cache immediately
+func (c Cache[TKey, TValue]) GetAndRemoveEntry(key TKey) Entry[TValue] {
+	c.mx.Lock()
+	defer c.mx.Unlock()
+	e := c.data[key]
+	c.remove(key)
+	return &e
+}
+
 //GetAll returns all the values stored in the cache
 func (c Cache[TKey, TValue]) GetAll() map[TKey]TValue {
 	c.mx.RLock()

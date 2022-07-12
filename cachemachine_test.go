@@ -345,3 +345,45 @@ func TestEntry_TimeLeft(t *testing.T) {
 		t.Errorf("Expected to have %d, got %d", expected, got)
 	}
 }
+
+func TestCache_GetEntry(t *testing.T) {
+	c := initializeFullCache(10, nil)
+
+	val := c.GetEntry(2).Value()
+
+	if val != 2 {
+		t.Errorf("Expected to get value %d. Got %d", 2, val)
+	}
+}
+
+func TestCache_GetAndRemoveEntry(t *testing.T) {
+	c := initializeFullCache(10, nil)
+
+	val := c.GetAndRemoveEntry(2).Value()
+
+	if val != 2 {
+		t.Errorf("Expected to get value %d. Got %d", 2, val)
+	}
+
+	if c.Exist(2) {
+		t.Errorf("Key %d in cache shouldn't exist, but it does!", 2)
+	}
+}
+
+func TestCache_AddWithTimeout(t *testing.T) {
+	c := initializeFullCache(0, nil)
+
+	val := 1
+
+	c.AddWithTimeout(val, val, time.Millisecond*500)
+
+	if !c.Exist(val) {
+		t.Errorf("Value with key %d should exist in the cache, but it does not!", val)
+	}
+	
+	time.Sleep(time.Millisecond * 1000)
+
+	if c.Exist(val) {
+		t.Errorf("Value with key %d should NOT exist in the cache, but it does!", val)
+	}
+}

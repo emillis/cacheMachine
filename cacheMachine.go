@@ -181,6 +181,7 @@ func (c *Cache[TKey, TValue]) add(key TKey, val TValue) Entry[TValue] {
 	return &e
 }
 
+//addWithTimeout adds key:value pair with specified duration of timeout
 func (c *Cache[TKey, TValue]) addWithTimeout(key TKey, val TValue, t time.Duration) Entry[TValue] {
 	now := time.Now()
 
@@ -196,6 +197,25 @@ func (c *Cache[TKey, TValue]) addWithTimeout(key TKey, val TValue, t time.Durati
 	c.data[key] = e
 
 	return &e
+}
+
+//addTImer adds new timer with specified duration if it doesn't yet exist. If timer is already present,
+//this method resets it with the specified duration
+func (c *Cache[TKey, TValue]) addTimer(key TKey, t time.Duration) {
+	e, exist := c.data[key]
+
+	if !exist {
+		return
+	}
+
+	if e.timer == nil {
+		e.timer = time.AfterFunc(t, func() {
+			c.Remove(key)
+		})
+		return
+	}
+
+	e.timer.Reset(t)
 }
 
 //remove method removes an item, but is not protected by a mutex

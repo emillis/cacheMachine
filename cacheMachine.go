@@ -158,7 +158,7 @@ type Cache[TKey Key, TValue any] struct {
 //------PRIVATE------
 
 //add method adds an item. This method has no mutex protection
-func (c *Cache[TKey, TValue]) add(key TKey, val TValue) Entry[TValue] {
+func (c *Cache[TKey, TValue]) add(key TKey, val TValue, t time.Duration) Entry[TValue] {
 	now := time.Now()
 
 	e := entry[TValue]{
@@ -168,30 +168,17 @@ func (c *Cache[TKey, TValue]) add(key TKey, val TValue) Entry[TValue] {
 		mx:              sync.RWMutex{},
 	}
 
-	if c.cache.Requirements.timeoutInUse {
-		e.timer = time.AfterFunc(c.cache.Requirements.DefaultTimeout, func() {
+	//Timer implementation
+	if t.String() != "0s" || c.cache.Requirements.timeoutInUse {
+		if t.String() == "0s" {
+			t = c.cache.Requirements.DefaultTimeout
+		}
+
+		e.timer = time.AfterFunc(t, func() {
 			c.Remove(key)
 		})
 
 		e.lastReset = now
-	}
-
-	c.data[key] = e
-
-	return &e
-}
-
-//addWithTimeout adds key:value pair with specified duration of timeout
-func (c *Cache[TKey, TValue]) addWithTimeout(key TKey, val TValue, t time.Duration) Entry[TValue] {
-	now := time.Now()
-
-	e := entry[TValue]{
-		Val:             val,
-		TimeAdded:       now,
-		TimeoutDuration: t,
-		mx:              sync.RWMutex{},
-		timer:           time.AfterFunc(c.cache.Requirements.DefaultTimeout, func() { c.Remove(key) }),
-		lastReset:       now,
 	}
 
 	c.data[key] = e
@@ -243,14 +230,14 @@ func (c *Cache[TKey, TValue]) reset() {
 func (c Cache[TKey, TValue]) Add(key TKey, val TValue) Entry[TValue] {
 	c.mx.Lock()
 	defer c.mx.Unlock()
-	return c.add(key, val)
+	return c.add(key, val, 0)
 }
 
 //AddWithTimeout does the same as method "Add" but also sets timer for automatic removal of the entry
 func (c Cache[TKey, TValue]) AddWithTimeout(key TKey, val TValue, timeout time.Duration) Entry[TValue] {
 	c.mx.Lock()
 	defer c.mx.Unlock()
-	return c.addWithTimeout(key, val, timeout)
+	return c.add(key, val, timeout)
 }
 
 //AddBulk adds items to cache in bulk
@@ -262,7 +249,7 @@ func (c Cache[TKey, TValue]) AddBulk(d map[TKey]TValue) {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	for k, v := range d {
-		c.add(k, v)
+		c.add(k, v, 0)
 	}
 }
 

@@ -51,14 +51,8 @@ type entry[TValue any] struct {
 	//The value stored in the cache
 	Val TValue `json:"value" bson:"value"`
 
-	//When was the value added to the cache
-	TimeAdded time.Time `json:"time_added" bson:"time_added"`
-
 	//This is the timer that monitors auto-removal of the element
 	timer *time.Timer
-
-	//Stores time when the last timer reset happened
-	lastReset time.Time
 
 	//Locks
 	mx sync.RWMutex
@@ -78,7 +72,6 @@ func (e *entry[TValue]) resetTimer(t time.Duration) {
 	}
 
 	e.timer.Reset(t)
-	e.lastReset = time.Now()
 }
 
 //------PUBLIC------
@@ -115,7 +108,6 @@ func (e *entry[TValue]) StopTimer() {
 	e.resetTimer(0)
 }
 
-
 //Cache is the main definition of the cache
 type cache[TKey Key, TValue any] struct {
 	Requirements Requirements
@@ -130,12 +122,9 @@ type Cache[TKey Key, TValue any] struct {
 
 //add method adds an item. This method has no mutex protection
 func (c *Cache[TKey, TValue]) add(key TKey, val TValue, t time.Duration) Entry[TValue] {
-	now := time.Now()
-
 	e := entry[TValue]{
-		Val:             val,
-		TimeAdded:       now,
-		mx:              sync.RWMutex{},
+		Val: val,
+		mx:  sync.RWMutex{},
 	}
 
 	//Timer implementation
@@ -147,8 +136,6 @@ func (c *Cache[TKey, TValue]) add(key TKey, val TValue, t time.Duration) Entry[T
 		e.timer = time.AfterFunc(t, func() {
 			c.Remove(key)
 		})
-
-		e.lastReset = now
 	}
 
 	c.data[key] = e
@@ -193,6 +180,13 @@ func (c *Cache[TKey, TValue]) reset() {
 }
 
 //------PUBLIC------
+
+//AddTimer adds timer to the key specified. If the key already has a timer, it gets reset with the new duration specified
+func (c Cache[TKey, TValue]) AddTimer(key TKey, t time.Duration) {
+	c.mx.Lock()
+	defer c.mx.Unlock()
+	c.addTimer(key, t)
+}
 
 //Add inserts new key:value pair into the cache
 func (c Cache[TKey, TValue]) Add(key TKey, val TValue) Entry[TValue] {

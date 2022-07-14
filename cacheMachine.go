@@ -30,12 +30,9 @@ type BulkAdder[TKey Key, TValue any] interface {
 
 type Entry[TValue any] interface {
 	Value() TValue
-	ResetTimer()
+	ResetTimer(time.Duration)
 	StopTimer()
 	TimerExist() bool
-	TimeLeft() time.Time
-	SetTimer(duration time.Duration)
-	SetAndResetTimer(duration time.Duration)
 }
 
 //===========[STRUCTS]==================================================================================================
@@ -57,9 +54,6 @@ type entry[TValue any] struct {
 	//When was the value added to the cache
 	TimeAdded time.Time `json:"time_added" bson:"time_added"`
 
-	//How long will the cache wait after the last update until it will remove this element
-	TimeoutDuration time.Duration `json:"valid_until" bson:"valid_until"`
-
 	//This is the timer that monitors auto-removal of the element
 	timer *time.Timer
 
@@ -72,18 +66,18 @@ type entry[TValue any] struct {
 
 //------PRIVATE------
 
-//Sets a new duration after which the entity is removed. This method is not protected by a mutex
-func (e *entry[TValue]) newTimeoutDuration(duration time.Duration) {
-	e.TimeoutDuration = duration
-}
-
-//Resets timeout duration back to the beginning. This is not protected by a mutex
-func (e *entry[TValue]) resetTimeout() {
+//Resets timeout duration to the duration specified. If 0 is supplied, it stops the timer
+func (e *entry[TValue]) resetTimer(t time.Duration) {
 	if e.timer == nil {
 		return
 	}
 
-	e.timer.Reset(e.TimeoutDuration)
+	if t.String() == "0s" {
+		e.timer.Stop()
+		return
+	}
+
+	e.timer.Reset(t)
 	e.lastReset = time.Now()
 }
 
@@ -95,13 +89,13 @@ func (e *entry[TValue]) Value() TValue {
 }
 
 //ResetTimer resets the countdown timer until the removal of this entry
-func (e *entry[TValue]) ResetTimer() {
+func (e *entry[TValue]) ResetTimer(t time.Duration) {
 	e.mx.Lock()
 	defer e.mx.Unlock()
-	e.resetTimeout()
+	e.resetTimer(t)
 }
 
-//TimerExist returns time left until removal of the entity
+//TimerExist checks whether the timer exist and returns boolean accordingly
 func (e *entry[TValue]) TimerExist() bool {
 	if e.timer != nil {
 		return true
@@ -118,32 +112,9 @@ func (e *entry[TValue]) StopTimer() {
 
 	e.mx.Lock()
 	defer e.mx.Unlock()
-	e.timer.Stop()
+	e.resetTimer(0)
 }
 
-//TimeLeft returns time when the entity will be removed
-func (e *entry[TValue]) TimeLeft() time.Time {
-	return e.lastReset.Add(e.TimeoutDuration)
-}
-
-//SetTimer sets new duration after which entity is removed. This method does not force entity to start using the new
-//timeout duration. To achieve that, you need to either use "SetAndResetTimer" method or additionally call
-//"ResetTimer" method
-func (e *entry[TValue]) SetTimer(duration time.Duration) {
-	e.mx.Lock()
-	defer e.mx.Unlock()
-	e.newTimeoutDuration(duration)
-}
-
-//SetAndResetTimer does exactly what SetTimer, but also resets the timeout
-func (e *entry[TValue]) SetAndResetTimer(duration time.Duration) {
-	e.mx.Lock()
-	defer e.mx.Unlock()
-	e.newTimeoutDuration(duration)
-	e.resetTimeout()
-}
-
-//TODO: Add json encoding
 
 //Cache is the main definition of the cache
 type cache[TKey Key, TValue any] struct {
@@ -164,7 +135,6 @@ func (c *Cache[TKey, TValue]) add(key TKey, val TValue, t time.Duration) Entry[T
 	e := entry[TValue]{
 		Val:             val,
 		TimeAdded:       now,
-		TimeoutDuration: c.cache.Requirements.DefaultTimeout,
 		mx:              sync.RWMutex{},
 	}
 
@@ -195,14 +165,12 @@ func (c *Cache[TKey, TValue]) addTimer(key TKey, t time.Duration) {
 		return
 	}
 
-	if e.timer == nil {
-		e.timer = time.AfterFunc(t, func() {
-			c.Remove(key)
-		})
+	if e.timer != nil {
+		e.timer.Reset(t)
 		return
 	}
 
-	e.timer.Reset(t)
+	e.timer = time.AfterFunc(t, func() { c.Remove(key) })
 }
 
 //remove method removes an item, but is not protected by a mutex

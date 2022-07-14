@@ -332,20 +332,6 @@ func TestEntry_TimerExist(t *testing.T) {
 	}
 }
 
-func TestEntry_TimeLeft(t *testing.T) {
-	c := initializeFullCache(0, &Requirements{DefaultTimeout: time.Second * 30})
-	e1 := c.Add(1, 1)
-
-	time.Sleep(time.Second * 1)
-
-	expected := time.Now().Add(time.Second * 29).Second()
-	got := e1.TimeLeft().Second()
-
-	if expected != got {
-		t.Errorf("Expected to have %d, got %d", expected, got)
-	}
-}
-
 func TestCache_GetEntry(t *testing.T) {
 	c := initializeFullCache(10, nil)
 
@@ -380,7 +366,7 @@ func TestCache_AddWithTimeout(t *testing.T) {
 	if !c.Exist(val) {
 		t.Errorf("Value with key %d should exist in the cache, but it does not!", val)
 	}
-	
+
 	time.Sleep(time.Millisecond * 1000)
 
 	if c.Exist(val) {

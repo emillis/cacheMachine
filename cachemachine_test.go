@@ -373,3 +373,21 @@ func TestCache_AddWithTimeout(t *testing.T) {
 		t.Errorf("Value with key %d should NOT exist in the cache, but it does!", val)
 	}
 }
+
+func TestCache_AddTimer(t *testing.T) {
+	c := initializeFullCache(10, nil)
+
+	e1 := c.GetEntry(2)
+
+	if e1.TimerExist() {
+		t.Errorf("Timer does not suppose to exist, but it does!")
+	}
+
+	c.AddTimer(2, time.Second*30)
+
+	e2 := c.GetEntry(2)
+
+	if !e2.TimerExist() {
+		t.Errorf("Timer suppose to exist, but it does not!")
+	}
+}

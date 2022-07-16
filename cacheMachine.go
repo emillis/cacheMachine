@@ -111,7 +111,7 @@ func (e *entry[TValue]) StopTimer() {
 //Cache is the main definition of the cache
 type cache[TKey Key, TValue any] struct {
 	Requirements Requirements
-	data         map[TKey]entry[TValue]
+	data         map[TKey]*entry[TValue]
 	mx           sync.RWMutex
 }
 type Cache[TKey Key, TValue any] struct {
@@ -138,7 +138,7 @@ func (c *Cache[TKey, TValue]) add(key TKey, val TValue, t time.Duration) Entry[T
 		})
 	}
 
-	c.data[key] = e
+	c.data[key] = &e
 
 	return &e
 }
@@ -176,7 +176,7 @@ func (c *Cache[TKey, TValue]) copyValues() map[TKey]TValue {
 
 //reset clears the cache, but it's not using locks
 func (c *Cache[TKey, TValue]) reset() {
-	c.data = make(map[TKey]entry[TValue])
+	c.data = make(map[TKey]*entry[TValue])
 }
 
 //------PUBLIC------
@@ -247,8 +247,7 @@ func (c Cache[TKey, TValue]) Get(key TKey) (TValue, bool) {
 func (c Cache[TKey, TValue]) GetEntry(key TKey) Entry[TValue] {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
-	entry := c.data[key]
-	return &entry
+	return c.data[key]
 }
 
 //GetBulk returns a map of key -> Val pairs where key is one provided in the slice
@@ -277,9 +276,8 @@ func (c Cache[TKey, TValue]) GetAndRemove(key TKey) (TValue, bool) {
 func (c Cache[TKey, TValue]) GetAndRemoveEntry(key TKey) Entry[TValue] {
 	c.mx.Lock()
 	defer c.mx.Unlock()
-	e := c.data[key]
-	c.remove(key)
-	return &e
+	defer c.remove(key)
+	return c.data[key]
 }
 
 //GetAll returns all the values stored in the cache
@@ -371,7 +369,7 @@ func New[TKey Key, TValue any](r *Requirements) Cache[TKey, TValue] {
 
 	c := cache[TKey, TValue]{
 		Requirements: *r,
-		data:         make(map[TKey]entry[TValue]),
+		data:         make(map[TKey]*entry[TValue]),
 		mx:           sync.RWMutex{},
 	}
 

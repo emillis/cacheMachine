@@ -391,3 +391,42 @@ func TestCache_AddTimer(t *testing.T) {
 		t.Errorf("Timer suppose to exist, but it does not!")
 	}
 }
+
+func TestEntry_StopTimer(t *testing.T) {
+	c := initializeFullCache(10, &Requirements{DefaultTimeout: time.Millisecond * 250})
+
+	e := c.GetEntry(1)
+
+	if e == nil {
+		t.Errorf("Expected to have entry using key %d, got <nil>", 1)
+		return
+	}
+
+	e.StopTimer()
+
+	time.Sleep(time.Millisecond * 500)
+
+	if !c.Exist(1) {
+		t.Errorf("Entry with key %d should be preset, but it is not!", 1)
+	}
+}
+
+func TestEntry_ResetTimer(t *testing.T) {
+	c := initializeFullCache(10, &Requirements{DefaultTimeout: time.Millisecond * 250})
+
+	if !c.Exist(1) || !c.Exist(2) {
+		t.Errorf("Both, entry 1 and 2 should be present in the cache, but one or both are not!")
+	}
+
+	c.GetEntry(1).ResetTimer(time.Millisecond * 500)
+
+	time.Sleep(time.Millisecond * 350)
+
+	if c.Exist(2) {
+		t.Errorf("Entry with key 2 should not exist in cache, but it does!")
+	}
+
+	if !c.Exist(1) {
+		t.Errorf("Entry with key 1 should exist in the cache, but it does not!")
+	}
+}

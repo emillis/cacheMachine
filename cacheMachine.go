@@ -267,8 +267,8 @@ func (c Cache[TKey, TValue]) GetBulk(d []TKey) map[TKey]TValue {
 func (c Cache[TKey, TValue]) GetAndRemove(key TKey) (TValue, bool) {
 	c.mx.Lock()
 	defer c.mx.Unlock()
+	defer c.remove(key)
 	e, exist := c.data[key]
-	c.remove(key)
 	return e.Val, exist
 }
 
@@ -288,12 +288,11 @@ func (c Cache[TKey, TValue]) GetAll() map[TKey]TValue {
 }
 
 //GetAllAndRemove returns and removes all the elements from the cache
-func (c *Cache[TKey, TValue]) GetAllAndRemove() map[TKey]TValue {
+func (c Cache[TKey, TValue]) GetAllAndRemove() map[TKey]TValue {
 	c.mx.Lock()
 	defer c.mx.Unlock()
-	cpy := c.copyValues()
-	c.reset()
-	return cpy
+	defer c.reset()
+	return c.copyValues()
 }
 
 //GetRandomSamples returns mixed set of items. Number of items is defined in the argument, if it exceeds the

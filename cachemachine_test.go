@@ -430,3 +430,132 @@ func TestEntry_ResetTimer(t *testing.T) {
 		t.Errorf("Entry with key 1 should exist in the cache, but it does not!")
 	}
 }
+
+//===========[BENCHMARKS]====================================================================================================
+
+func BenchmarkAdd(b *testing.B) {
+	c := initializeFullCache(0, nil)
+
+	for n := 0; n < b.N; n++ {
+		c.Add(n, n)
+	}
+}
+
+func BenchmarkAddBulk(b *testing.B) {
+	c := initializeFullCache(0, nil)
+
+	for n := 0; n < b.N; n++ {
+		c.AddBulk(map[int]int{
+			n: n,
+		})
+	}
+}
+
+func BenchmarkRemove(b *testing.B) {
+	c := initializeFullCache(0, nil)
+
+	for n := 0; n < b.N; n++ {
+		c.Remove(n)
+	}
+}
+
+func BenchmarkRemoveBulk(b *testing.B) {
+	c := initializeFullCache(0, nil)
+
+	for n := 0; n < b.N; n++ {
+		c.RemoveBulk([]int{n, n + 1, n + 2})
+	}
+}
+
+func BenchmarkExist(b *testing.B) {
+	c := initializeFullCache(2, nil)
+
+	for n := 0; n < b.N; n++ {
+		c.Exist(1)
+	}
+}
+
+func BenchmarkGet(b *testing.B) {
+	c := initializeFullCache(2, nil)
+
+	for n := 0; n < b.N; n++ {
+		c.Get(1)
+	}
+}
+
+func BenchmarkGetBulk(b *testing.B) {
+	c := initializeFullCache(1, nil)
+
+	for n := 0; n < b.N; n++ {
+		c.GetBulk([]int{0})
+	}
+}
+
+func BenchmarkGetAndRemove(b *testing.B) {
+	c := initializeFullCache(2, nil)
+
+	for n := 0; n < b.N; n++ {
+		c.GetAndRemove(1)
+	}
+}
+
+func BenchmarkGetAll(b *testing.B) {
+	c := initializeFullCache(1, nil)
+
+	for n := 0; n < b.N; n++ {
+		c.GetAll()
+	}
+}
+
+func BenchmarkCount(b *testing.B) {
+	c := initializeFullCache(2, nil)
+
+	for n := 0; n < b.N; n++ {
+		c.Count()
+	}
+}
+
+func BenchmarkReset(b *testing.B) {
+	var c = initializeFullCache(10, nil)
+
+	for n := 0; n < b.N; n++ {
+		c.Reset()
+	}
+}
+
+func BenchmarkForEach(b *testing.B) {
+	cache := initializeFullCache(1, nil)
+
+	for n := 0; n < b.N; n++ {
+		cache.ForEach(func(key, val int) {})
+	}
+}
+
+func BenchmarkCopy(b *testing.B) {
+	var c1 = initializeFullCache(1, nil)
+
+	for n := 0; n < b.N; n++ {
+		Copy[int, int](c1)
+	}
+
+}
+
+func BenchmarkMerge(b *testing.B) {
+	var c1 = initializeFullCache(1, nil)
+	var c2 = initializeFullCache(2, nil)
+
+	for n := 0; n < b.N; n++ {
+		Merge[int, int](c1, c2)
+	}
+
+}
+
+func BenchmarkMergeAndReset(b *testing.B) {
+	var c1 = initializeFullCache(1, nil)
+	var c2 = initializeFullCache(2, nil)
+
+	for n := 0; n < b.N; n++ {
+		MergeAndReset[int, int](c1, c2)
+	}
+
+}

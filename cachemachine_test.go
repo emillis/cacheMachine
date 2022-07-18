@@ -433,6 +433,16 @@ func TestEntry_ResetTimer(t *testing.T) {
 
 //===========[BENCHMARKS]====================================================================================================
 
+func BenchmarkCache_AddTimer(b *testing.B) {
+	c := initializeFullCache(10, nil)
+
+	t := time.Second * 90
+
+	for n := 0; n < b.N; n++ {
+		c.AddTimer(2, t)
+	}
+}
+
 func BenchmarkAdd(b *testing.B) {
 	c := initializeFullCache(0, nil)
 

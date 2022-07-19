@@ -433,6 +433,14 @@ func TestEntry_ResetTimer(t *testing.T) {
 
 //===========[BENCHMARKS]====================================================================================================
 
+func BenchmarkCache_AddWithTimeout(b *testing.B) {
+	c := initializeFullCache(0, nil)
+
+	for n := 0; n < b.N; n++ {
+		c.AddWithTimeout(n, n, time.Second*90)
+	}
+}
+
 func BenchmarkCache_AddTimer(b *testing.B) {
 	c := initializeFullCache(10, nil)
 
@@ -443,7 +451,7 @@ func BenchmarkCache_AddTimer(b *testing.B) {
 	}
 }
 
-func BenchmarkAdd(b *testing.B) {
+func BenchmarkCache_Add(b *testing.B) {
 	c := initializeFullCache(0, nil)
 
 	for n := 0; n < b.N; n++ {
@@ -451,7 +459,7 @@ func BenchmarkAdd(b *testing.B) {
 	}
 }
 
-func BenchmarkAddBulk(b *testing.B) {
+func BenchmarkCache_AddBulk(b *testing.B) {
 	c := initializeFullCache(0, nil)
 
 	for n := 0; n < b.N; n++ {
@@ -461,7 +469,7 @@ func BenchmarkAddBulk(b *testing.B) {
 	}
 }
 
-func BenchmarkRemove(b *testing.B) {
+func BenchmarkCache_Remove(b *testing.B) {
 	c := initializeFullCache(0, nil)
 
 	for n := 0; n < b.N; n++ {
@@ -469,7 +477,7 @@ func BenchmarkRemove(b *testing.B) {
 	}
 }
 
-func BenchmarkRemoveBulk(b *testing.B) {
+func BenchmarkCache_RemoveBulk(b *testing.B) {
 	c := initializeFullCache(0, nil)
 
 	for n := 0; n < b.N; n++ {
@@ -477,7 +485,7 @@ func BenchmarkRemoveBulk(b *testing.B) {
 	}
 }
 
-func BenchmarkExist(b *testing.B) {
+func BenchmarkCache_Exist(b *testing.B) {
 	c := initializeFullCache(2, nil)
 
 	for n := 0; n < b.N; n++ {
@@ -485,7 +493,7 @@ func BenchmarkExist(b *testing.B) {
 	}
 }
 
-func BenchmarkGet(b *testing.B) {
+func BenchmarkCache_Get(b *testing.B) {
 	c := initializeFullCache(2, nil)
 
 	for n := 0; n < b.N; n++ {
@@ -493,7 +501,7 @@ func BenchmarkGet(b *testing.B) {
 	}
 }
 
-func BenchmarkGetBulk(b *testing.B) {
+func BenchmarkCache_GetBulk(b *testing.B) {
 	c := initializeFullCache(1, nil)
 
 	for n := 0; n < b.N; n++ {
@@ -501,7 +509,7 @@ func BenchmarkGetBulk(b *testing.B) {
 	}
 }
 
-func BenchmarkGetAndRemove(b *testing.B) {
+func BenchmarkCache_GetAndRemove(b *testing.B) {
 	c := initializeFullCache(2, nil)
 
 	for n := 0; n < b.N; n++ {
@@ -509,7 +517,7 @@ func BenchmarkGetAndRemove(b *testing.B) {
 	}
 }
 
-func BenchmarkGetAll(b *testing.B) {
+func BenchmarkCache_GetAll(b *testing.B) {
 	c := initializeFullCache(1, nil)
 
 	for n := 0; n < b.N; n++ {
@@ -517,7 +525,7 @@ func BenchmarkGetAll(b *testing.B) {
 	}
 }
 
-func BenchmarkCount(b *testing.B) {
+func BenchmarkCache_Count(b *testing.B) {
 	c := initializeFullCache(2, nil)
 
 	for n := 0; n < b.N; n++ {
@@ -525,7 +533,7 @@ func BenchmarkCount(b *testing.B) {
 	}
 }
 
-func BenchmarkReset(b *testing.B) {
+func BenchmarkCache_Reset(b *testing.B) {
 	var c = initializeFullCache(10, nil)
 
 	for n := 0; n < b.N; n++ {
@@ -533,7 +541,7 @@ func BenchmarkReset(b *testing.B) {
 	}
 }
 
-func BenchmarkForEach(b *testing.B) {
+func BenchmarkCache_ForEach(b *testing.B) {
 	cache := initializeFullCache(1, nil)
 
 	for n := 0; n < b.N; n++ {

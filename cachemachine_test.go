@@ -17,6 +17,10 @@ func initializeFullCache(n int, r *Requirements) Cache[int, int] {
 	return c
 }
 
+func doAbsolutelyNothing[T any](n T) {
+
+}
+
 //===========[TESTING]====================================================================================================
 
 func TestCache_Add(t *testing.T) {
@@ -432,6 +436,70 @@ func TestEntry_ResetTimer(t *testing.T) {
 }
 
 //===========[BENCHMARKS]====================================================================================================
+
+func BenchmarkEntry_StopTimer(b *testing.B) {
+	c := initializeFullCache(0, nil)
+
+	e := c.AddWithTimeout(1, 1, time.Second*90)
+
+	for n := 0; n < b.N; n++ {
+		e.StopTimer()
+	}
+}
+
+func BenchmarkEntry_ResetTimer(b *testing.B) {
+	c := initializeFullCache(0, nil)
+
+	e := c.AddWithTimeout(1, 1, time.Second*90)
+
+	for n := 0; n < b.N; n++ {
+		e.ResetTimer(time.Second * 30)
+	}
+}
+
+func BenchmarkEntry_TimerExist(b *testing.B) {
+	c := initializeFullCache(0, nil)
+
+	e := c.AddWithTimeout(1, 1, time.Second*90)
+
+	for n := 0; n < b.N; n++ {
+		doAbsolutelyNothing(e.TimerExist())
+	}
+}
+
+func BenchmarkEntry_Value(b *testing.B) {
+	c := initializeFullCache(0, nil)
+
+	e := c.Add(1, 1)
+
+	for n := 0; n < b.N; n++ {
+		doAbsolutelyNothing(e.Value())
+	}
+}
+
+func BenchmarkCache_Requirements(b *testing.B) {
+	c := initializeFullCache(10, nil)
+
+	for n := 0; n < b.N; n++ {
+		c.Requirements()
+	}
+}
+
+func BenchmarkCache_GetRandomSamples(b *testing.B) {
+	c := initializeFullCache(10, nil)
+
+	for n := 0; n < b.N; n++ {
+		c.GetRandomSamples(3)
+	}
+}
+
+func BenchmarkCache_GetAllAndRemove(b *testing.B) {
+	c := initializeFullCache(1, nil)
+
+	for n := 0; n < b.N; n++ {
+		c.GetAllAndRemove()
+	}
+}
 
 func BenchmarkCache_GetAndRemoveEntry(b *testing.B) {
 	c := initializeFullCache(10, nil)

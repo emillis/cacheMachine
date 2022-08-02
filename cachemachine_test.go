@@ -657,7 +657,7 @@ func BenchmarkMergeAndReset(b *testing.B) {
 	var c2 = initializeFullCache(2, nil)
 
 	for n := 0; n < b.N; n++ {
-		MergeAndReset[int, int](c1, c2)
+		MergeAndReset[int, int](c1, &c2)
 	}
 
 }

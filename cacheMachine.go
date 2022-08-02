@@ -179,6 +179,15 @@ func (c *Cache[TKey, TValue]) reset() {
 	c.data = make(map[TKey]*entry[TValue])
 }
 
+//getEntry is a private method tha returns Entry or nil and is not using mutexes
+func (c Cache[TKey, TValue]) getEntry(key TKey) Entry[TValue] {
+	if entry, exist := c.data[key]; !exist {
+		return nil
+	} else {
+		return entry
+	}
+}
+
 //------PUBLIC------
 
 //AddTimer adds timer to the key specified. If the key already has a timer, it gets reset with the new duration specified
@@ -235,12 +244,28 @@ func (c Cache[TKey, TValue]) RemoveBulk(keys []TKey) {
 	}
 }
 
-//Get returns Val based on the key provided
+//Get returns Value and boolean depending on whether the value exist in the cache
 func (c Cache[TKey, TValue]) Get(key TKey) (TValue, bool) {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
-	entry, exist := c.data[key]
-	return entry.Val, exist
+	if e := c.getEntry(key); e == nil {
+		var nilVal TValue
+		return nilVal, false
+	} else {
+		return e.Value(), true
+	}
+}
+
+//GetValue returns only Value based on the key provided
+func (c Cache[TKey, TValue]) GetValue(key TKey) TValue {
+	c.mx.RLock()
+	defer c.mx.RUnlock()
+	if e := c.getEntry(key); e == nil {
+		var nilVal TValue
+		return nilVal
+	} else {
+		return e.Value()
+	}
 }
 
 //GetEntry returns Entry interface for the value saved in the cache
@@ -288,7 +313,7 @@ func (c Cache[TKey, TValue]) GetAll() map[TKey]TValue {
 }
 
 //GetAllAndRemove returns and removes all the elements from the cache
-func (c Cache[TKey, TValue]) GetAllAndRemove() map[TKey]TValue {
+func (c *Cache[TKey, TValue]) GetAllAndRemove() map[TKey]TValue {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	defer c.reset()

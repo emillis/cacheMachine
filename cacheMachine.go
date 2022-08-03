@@ -272,7 +272,7 @@ func (c Cache[TKey, TValue]) GetValue(key TKey) TValue {
 func (c Cache[TKey, TValue]) GetEntry(key TKey) Entry[TValue] {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
-	return c.data[key]
+	return c.getEntry(key)
 }
 
 //GetBulk returns a map of key -> Val pairs where key is one provided in the slice

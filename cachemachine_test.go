@@ -339,10 +339,15 @@ func TestEntry_TimerExist(t *testing.T) {
 func TestCache_GetEntry(t *testing.T) {
 	c := initializeFullCache(10, nil)
 
-	val := c.GetEntry(2).Value()
+	v1 := c.GetEntry(2)
+	v2 := c.GetEntry(200)
 
-	if val != 2 {
-		t.Errorf("Expected to get value %d. Got %d", 2, val)
+	if v1 == nil || v2 != nil {
+		t.Errorf("Expected the v1 to be not nil and v2 to be nil, got v1 - %T and v2 - %T", v1, v2)
+	}
+
+	if v1.Value() != 2 {
+		t.Errorf("Expected to get value %d. Got %d", 2, v1.Value())
 	}
 }
 

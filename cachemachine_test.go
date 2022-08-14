@@ -242,7 +242,7 @@ func TestNew(t *testing.T) {
 
 func TestCopy(t *testing.T) {
 	c1 := initializeFullCache(50, &Requirements{DefaultTimeout: time.Second * 30})
-	c2 := Copy(c1)
+	c2 := Copy(&c1)
 
 	c2Len := len(c2.data)
 	tm := c2.Requirements().DefaultTimeout.String()
@@ -261,7 +261,7 @@ func TestMerge(t *testing.T) {
 	main := initializeFullCache(10, nil)
 	secondary := initializeFullCache(20, nil)
 
-	Merge[int, int](main, secondary)
+	Merge[int, int](&main, &secondary)
 
 	mainLen := len(main.data)
 
@@ -274,7 +274,7 @@ func TestMergeAndReset(t *testing.T) {
 	main := initializeFullCache(10, nil)
 	secondary := initializeFullCache(20, nil)
 
-	MergeAndReset[int, int](main, &secondary)
+	MergeAndReset[int, int](&main, &secondary)
 
 	mainLen := len(main.data)
 	secondaryLen := len(secondary.data)
@@ -642,7 +642,7 @@ func BenchmarkCopy(b *testing.B) {
 	var c1 = initializeFullCache(1, nil)
 
 	for n := 0; n < b.N; n++ {
-		Copy[int, int](c1)
+		Copy[int, int](&c1)
 	}
 
 }
@@ -652,7 +652,7 @@ func BenchmarkMerge(b *testing.B) {
 	var c2 = initializeFullCache(2, nil)
 
 	for n := 0; n < b.N; n++ {
-		Merge[int, int](c1, c2)
+		Merge[int, int](&c1, &c2)
 	}
 
 }
@@ -662,7 +662,7 @@ func BenchmarkMergeAndReset(b *testing.B) {
 	var c2 = initializeFullCache(2, nil)
 
 	for n := 0; n < b.N; n++ {
-		MergeAndReset[int, int](c1, &c2)
+		MergeAndReset[int, int](&c1, &c2)
 	}
 
 }

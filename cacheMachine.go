@@ -180,7 +180,7 @@ func (c *Cache[TKey, TValue]) reset() {
 }
 
 //getEntry is a private method tha returns Entry or nil and is not using mutexes
-func (c Cache[TKey, TValue]) getEntry(key TKey) Entry[TValue] {
+func (c *Cache[TKey, TValue]) getEntry(key TKey) Entry[TValue] {
 	if entry, exist := c.data[key]; !exist {
 		return nil
 	} else {
@@ -191,28 +191,28 @@ func (c Cache[TKey, TValue]) getEntry(key TKey) Entry[TValue] {
 //------PUBLIC------
 
 //AddTimer adds timer to the key specified. If the key already has a timer, it gets reset with the new duration specified
-func (c Cache[TKey, TValue]) AddTimer(key TKey, t time.Duration) {
+func (c *Cache[TKey, TValue]) AddTimer(key TKey, t time.Duration) {
 	c.mx.Lock()
 	c.addTimer(key, t)
 	c.mx.Unlock()
 }
 
 //Add inserts new key:value pair into the cache
-func (c Cache[TKey, TValue]) Add(key TKey, val TValue) Entry[TValue] {
+func (c *Cache[TKey, TValue]) Add(key TKey, val TValue) Entry[TValue] {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	return c.add(key, val, 0)
 }
 
 //AddWithTimeout does the same as method "Add" but also sets timer for automatic removal of the entry
-func (c Cache[TKey, TValue]) AddWithTimeout(key TKey, val TValue, timeout time.Duration) Entry[TValue] {
+func (c *Cache[TKey, TValue]) AddWithTimeout(key TKey, val TValue, timeout time.Duration) Entry[TValue] {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	return c.add(key, val, timeout)
 }
 
 //AddBulk adds items to cache in bulk
-func (c Cache[TKey, TValue]) AddBulk(d map[TKey]TValue) {
+func (c *Cache[TKey, TValue]) AddBulk(d map[TKey]TValue) {
 	if d == nil {
 		return
 	}
@@ -225,14 +225,14 @@ func (c Cache[TKey, TValue]) AddBulk(d map[TKey]TValue) {
 }
 
 //Remove removes Val from the cache based on the key provided
-func (c Cache[TKey, TValue]) Remove(key TKey) {
+func (c *Cache[TKey, TValue]) Remove(key TKey) {
 	c.mx.Lock()
 	c.remove(key)
 	c.mx.Unlock()
 }
 
 //RemoveBulk removes cached data based on keys provided
-func (c Cache[TKey, TValue]) RemoveBulk(keys []TKey) {
+func (c *Cache[TKey, TValue]) RemoveBulk(keys []TKey) {
 	if keys == nil || len(keys) < 1 {
 		return
 	}
@@ -245,7 +245,7 @@ func (c Cache[TKey, TValue]) RemoveBulk(keys []TKey) {
 }
 
 //Get returns Value and boolean depending on whether the value exist in the cache
-func (c Cache[TKey, TValue]) Get(key TKey) (TValue, bool) {
+func (c *Cache[TKey, TValue]) Get(key TKey) (TValue, bool) {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
 	if e := c.getEntry(key); e == nil {
@@ -257,7 +257,7 @@ func (c Cache[TKey, TValue]) Get(key TKey) (TValue, bool) {
 }
 
 //GetValue returns only Value based on the key provided
-func (c Cache[TKey, TValue]) GetValue(key TKey) TValue {
+func (c *Cache[TKey, TValue]) GetValue(key TKey) TValue {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
 	if e := c.getEntry(key); e == nil {
@@ -269,14 +269,14 @@ func (c Cache[TKey, TValue]) GetValue(key TKey) TValue {
 }
 
 //GetEntry returns Entry interface for the value saved in the cache
-func (c Cache[TKey, TValue]) GetEntry(key TKey) Entry[TValue] {
+func (c *Cache[TKey, TValue]) GetEntry(key TKey) Entry[TValue] {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
 	return c.getEntry(key)
 }
 
 //GetBulk returns a map of key -> Val pairs where key is one provided in the slice
-func (c Cache[TKey, TValue]) GetBulk(d []TKey) map[TKey]TValue {
+func (c *Cache[TKey, TValue]) GetBulk(d []TKey) map[TKey]TValue {
 	results := make(map[TKey]TValue)
 
 	c.mx.RLock()
@@ -289,7 +289,7 @@ func (c Cache[TKey, TValue]) GetBulk(d []TKey) map[TKey]TValue {
 }
 
 //GetAndRemove returns requested Val and removes it from the cache
-func (c Cache[TKey, TValue]) GetAndRemove(key TKey) (TValue, bool) {
+func (c *Cache[TKey, TValue]) GetAndRemove(key TKey) (TValue, bool) {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	defer c.remove(key)
@@ -298,7 +298,7 @@ func (c Cache[TKey, TValue]) GetAndRemove(key TKey) (TValue, bool) {
 }
 
 //GetAndRemoveEntry returns Entry interface and removes the entity from the cache immediately
-func (c Cache[TKey, TValue]) GetAndRemoveEntry(key TKey) Entry[TValue] {
+func (c *Cache[TKey, TValue]) GetAndRemoveEntry(key TKey) Entry[TValue] {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	defer c.remove(key)
@@ -306,7 +306,7 @@ func (c Cache[TKey, TValue]) GetAndRemoveEntry(key TKey) Entry[TValue] {
 }
 
 //GetAll returns all the values stored in the cache
-func (c Cache[TKey, TValue]) GetAll() map[TKey]TValue {
+func (c *Cache[TKey, TValue]) GetAll() map[TKey]TValue {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
 	return c.copyValues()
@@ -322,7 +322,7 @@ func (c *Cache[TKey, TValue]) GetAllAndRemove() map[TKey]TValue {
 
 //GetRandomSamples returns mixed set of items. Number of items is defined in the argument, if it exceeds the
 //number of items that are present in the cache, it will return all the cached items
-func (c Cache[TKey, TValue]) GetRandomSamples(n int) map[TKey]TValue {
+func (c *Cache[TKey, TValue]) GetRandomSamples(n int) map[TKey]TValue {
 	results := make(map[TKey]TValue)
 
 	for key, entry := range c.data {
@@ -339,7 +339,7 @@ func (c Cache[TKey, TValue]) GetRandomSamples(n int) map[TKey]TValue {
 }
 
 //Exist checks whether there the key exists in the cache
-func (c Cache[TKey, TValue]) Exist(key TKey) bool {
+func (c *Cache[TKey, TValue]) Exist(key TKey) bool {
 	c.mx.RLock()
 	defer c.mx.RUnlock()
 	_, exist := c.data[key]
@@ -347,7 +347,7 @@ func (c Cache[TKey, TValue]) Exist(key TKey) bool {
 }
 
 //Count returns number of elements currently present in the cache
-func (c Cache[TKey, TValue]) Count() int {
+func (c *Cache[TKey, TValue]) Count() int {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 	return len(c.data)
@@ -355,7 +355,7 @@ func (c Cache[TKey, TValue]) Count() int {
 
 //ForEach runs a loop for each element in the cache. Take care using this method as it locks reading/writing the
 //cache until ForEach completes.
-func (c Cache[TKey, TValue]) ForEach(f func(TKey, TValue)) {
+func (c *Cache[TKey, TValue]) ForEach(f func(TKey, TValue)) {
 	d := c.GetAll()
 
 	for k, v := range d {
@@ -371,7 +371,7 @@ func (c *Cache[TKey, TValue]) Reset() {
 }
 
 //Requirements returns requirements used from this cache
-func (c Cache[TKey, TValue]) Requirements() Requirements {
+func (c *Cache[TKey, TValue]) Requirements() Requirements {
 	return c.cache.Requirements
 }
 
@@ -401,7 +401,7 @@ func New[TKey Key, TValue any](r *Requirements) Cache[TKey, TValue] {
 }
 
 //Copy creates identical copy of the cache supplied as an argument
-func Copy[TKey Key, TValue any](c Cache[TKey, TValue]) Cache[TKey, TValue] {
+func Copy[TKey Key, TValue any](c *Cache[TKey, TValue]) Cache[TKey, TValue] {
 	req := c.Requirements()
 	nc := New[TKey, TValue](&req)
 	nc.AddBulk(c.GetAll())

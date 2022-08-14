@@ -84,8 +84,8 @@ func (e *entry[TValue]) Value() TValue {
 //ResetTimer resets the countdown timer until the removal of this entry
 func (e *entry[TValue]) ResetTimer(t time.Duration) {
 	e.mx.Lock()
-	defer e.mx.Unlock()
 	e.resetTimer(t)
+	e.mx.Unlock()
 }
 
 //TimerExist checks whether the timer exist and returns boolean accordingly
@@ -104,8 +104,8 @@ func (e *entry[TValue]) StopTimer() {
 	}
 
 	e.mx.Lock()
-	defer e.mx.Unlock()
 	e.resetTimer(0)
+	e.mx.Unlock()
 }
 
 //Cache is the main definition of the cache
@@ -193,8 +193,8 @@ func (c Cache[TKey, TValue]) getEntry(key TKey) Entry[TValue] {
 //AddTimer adds timer to the key specified. If the key already has a timer, it gets reset with the new duration specified
 func (c Cache[TKey, TValue]) AddTimer(key TKey, t time.Duration) {
 	c.mx.Lock()
-	defer c.mx.Unlock()
 	c.addTimer(key, t)
+	c.mx.Unlock()
 }
 
 //Add inserts new key:value pair into the cache
@@ -218,17 +218,17 @@ func (c Cache[TKey, TValue]) AddBulk(d map[TKey]TValue) {
 	}
 
 	c.mx.Lock()
-	defer c.mx.Unlock()
 	for k, v := range d {
 		c.add(k, v, 0)
 	}
+	c.mx.Unlock()
 }
 
 //Remove removes Val from the cache based on the key provided
 func (c Cache[TKey, TValue]) Remove(key TKey) {
 	c.mx.Lock()
-	defer c.mx.Unlock()
 	c.remove(key)
+	c.mx.Unlock()
 }
 
 //RemoveBulk removes cached data based on keys provided
@@ -238,10 +238,10 @@ func (c Cache[TKey, TValue]) RemoveBulk(keys []TKey) {
 	}
 
 	c.mx.Lock()
-	defer c.mx.Unlock()
 	for _, key := range keys {
 		c.remove(key)
 	}
+	c.mx.Unlock()
 }
 
 //Get returns Value and boolean depending on whether the value exist in the cache
@@ -366,8 +366,8 @@ func (c Cache[TKey, TValue]) ForEach(f func(TKey, TValue)) {
 //Reset empties the cache and resets all the counters
 func (c *Cache[TKey, TValue]) Reset() {
 	c.mx.Lock()
-	defer c.mx.Unlock()
 	c.reset()
+	c.mx.Unlock()
 }
 
 //Requirements returns requirements used from this cache
